@@ -70,6 +70,10 @@ require_once 'db_connect.php';
                     <?php 
                         if($_GET['success'] == 'author_added') {
                             echo "Author added successfully!";
+                        } elseif ($_GET['success'] == 'author_updated') {
+                            echo "Author updated successfully!";
+                        } elseif ($_GET['success'] == 'author_deleted') {
+                            echo "Author deleted successfully!";
                         } elseif ($_GET['success'] == 'article_updated') {
                             echo "Article updated successfully!";
                         } elseif ($_GET['success'] == 'article_deleted') {
@@ -159,10 +163,11 @@ require_once 'db_connect.php';
                                             </thead>
                                             <tbody>
                                                 <?php
-                                                $recent_query = "SELECT * FROM news_items ORDER BY date DESC LIMIT 5";
+                                                $recent_query = "SELECT * FROM news_items ORDER BY \"date\" DESC FETCH FIRST 5 ROWS ONLY";
                                                 $recent_result = @$conn->query($recent_query);
-                                                if ($recent_result && $recent_result->num_rows > 0) {
-                                                    while($row = $recent_result->fetch_assoc()) {
+                                                $rows = $recent_result ? $recent_result->fetchAll(PDO::FETCH_ASSOC) : [];
+                                                if (count($rows) > 0) {
+                                                    foreach($rows as $row) {
                                                         $status_class = ($row['status'] == 'Published') ? 'success' : 'warning';
                                                         echo "<tr>";
                                                         echo "<td class='ps-4 fw-medium'>" . htmlspecialchars($row['news_title']) . "</td>";
@@ -228,6 +233,7 @@ require_once 'db_connect.php';
                                             <th>Author</th>
                                             <th>Category</th>
                                             <th>Date</th>
+                                            <th>Status</th>
                                             <th class="text-end">Actions</th>
                                         </tr>
                                     </thead>
@@ -235,20 +241,26 @@ require_once 'db_connect.php';
                                         <?php
                                         $all_query = "SELECT * FROM news_items ORDER BY id DESC";
                                         $all_result = @$conn->query($all_query);
-                                        if ($all_result && $all_result->num_rows > 0) {
-                                            while($row = $all_result->fetch_assoc()) {
+                                        $rows = $all_result ? $all_result->fetchAll(PDO::FETCH_ASSOC) : [];
+                                        if (count($rows) > 0) {
+                                            foreach($rows as $row) {
+                                                $desc = is_resource($row['news_description']) ? stream_get_contents($row['news_description']) : $row['news_description'];
+                                                $img_html = !empty($row['image']) ? "<img src='" . htmlspecialchars($row['image']) . "' alt='News' class='rounded me-2' width='40' height='30' style='object-fit: cover;'>" : "<span class='d-inline-block bg-light rounded text-muted text-center me-2' style='width: 40px; height: 30px; line-height: 30px;'><i class='bi bi-image'></i></span>";
                                                 echo "<tr>";
                                                 echo "<td>#" . htmlspecialchars($row['id']) . "</td>";
-                                                echo "<td class='fw-medium'>" . htmlspecialchars($row['news_title']) . "</td>";
+                                                echo "<td class='fw-medium d-flex align-items-center'>" . $img_html . htmlspecialchars($row['news_title']) . "</td>";
                                                 echo "<td>" . htmlspecialchars($row['author_name']) . "</td>";
                                                 echo "<td>" . htmlspecialchars($row['category']) . "</td>";
-                                                echo "<td>" . date('Y-m-d', strtotime($row['date'])) . "</td>";
+                                                $display_date = !empty($row['date']) ? date('Y-m-d', strtotime($row['date'])) : 'N/A';
+                                                echo "<td>" . $display_date . "</td>";
+                                                $status_class = ($row['status'] == 'Published') ? 'success' : 'warning';
+                                                echo "<td><span class='badge bg-" . $status_class . " bg-opacity-10 text-" . $status_class . "'>" . htmlspecialchars($row['status']) . "</span></td>";
                                                 echo "<td class='text-end'>
                                                         <button class='btn btn-sm btn-outline-secondary me-1 edit-article-btn' 
                                                             data-id='" . htmlspecialchars($row['id']) . "' 
                                                             data-title='" . htmlspecialchars($row['news_title'], ENT_QUOTES) . "' 
                                                             data-author='" . htmlspecialchars($row['author_name'], ENT_QUOTES) . "' 
-                                                            data-desc='" . htmlspecialchars($row['news_description'], ENT_QUOTES) . "' 
+                                                            data-desc='" . htmlspecialchars($desc, ENT_QUOTES) . "' 
                                                             data-category='" . htmlspecialchars($row['category'], ENT_QUOTES) . "' 
                                                             data-status='" . htmlspecialchars($row['status'], ENT_QUOTES) . "' 
                                                             data-bs-toggle='modal' data-bs-target='#editArticleModal'>
@@ -295,18 +307,30 @@ require_once 'db_connect.php';
                                         <?php
                                         $author_query = "SELECT * FROM authors ORDER BY id DESC";
                                         $author_result = @$conn->query($author_query);
-                                        if ($author_result && $author_result->num_rows > 0) {
-                                            while($row = $author_result->fetch_assoc()) {
+                                        $rows = $author_result ? $author_result->fetchAll(PDO::FETCH_ASSOC) : [];
+                                        if (count($rows) > 0) {
+                                            foreach($rows as $row) {
+                                                $bio = is_resource($row['bio']) ? stream_get_contents($row['bio']) : $row['bio'];
                                                 $img_src = !empty($row['profile_picture']) ? htmlspecialchars($row['profile_picture']) : 'https://ui-avatars.com/api/?name='.urlencode($row['name']);
                                                 echo "<tr>";
                                                 echo "<td>#A" . str_pad($row['id'], 2, '0', STR_PAD_LEFT) . "</td>";
                                                 echo "<td class='fw-medium'><img src='" . $img_src . "' alt='Avatar' class='rounded-circle me-2' width='30' height='30' style='object-fit: cover;'>" . htmlspecialchars($row['name']) . "</td>";
                                                 echo "<td>" . htmlspecialchars($row['email']) . "</td>";
-                                                echo "<td class='text-truncate' style='max-width: 200px;'>" . htmlspecialchars($row['bio']) . "</td>";
+                                                echo "<td class='text-truncate' style='max-width: 200px;'>" . htmlspecialchars($bio) . "</td>";
                                                 echo "<td><span class='badge bg-info bg-opacity-10 text-info'>" . htmlspecialchars($row['interest']) . "</span></td>";
                                                 echo "<td class='text-end'>
-                                                        <button class='btn btn-sm btn-outline-secondary me-1'><i class='bi bi-pencil'></i></button>
-                                                        <button class='btn btn-sm btn-outline-danger'><i class='bi bi-trash'></i></button>
+                                                        <button class='btn btn-sm btn-outline-secondary me-1 edit-author-btn' 
+                                                            data-id='" . htmlspecialchars($row['id']) . "' 
+                                                            data-name='" . htmlspecialchars($row['name'], ENT_QUOTES) . "' 
+                                                            data-email='" . htmlspecialchars($row['email'], ENT_QUOTES) . "' 
+                                                            data-bio='" . htmlspecialchars($bio, ENT_QUOTES) . "' 
+                                                            data-interest='" . htmlspecialchars($row['interest'], ENT_QUOTES) . "' 
+                                                            data-bs-toggle='modal' data-bs-target='#editAuthorModal'>
+                                                            <i class='bi bi-pencil'></i>
+                                                        </button>
+                                                        <a href='delete_author.php?id=" . $row['id'] . "' class='btn btn-sm btn-outline-danger' onclick='return confirm(\"Are you sure you want to delete this author?\");'>
+                                                            <i class='bi bi-trash'></i>
+                                                        </a>
                                                       </td>";
                                                 echo "</tr>";
                                             }
@@ -329,7 +353,7 @@ require_once 'db_connect.php';
     <div class="modal fade" id="addArticleModal" tabindex="-1" aria-labelledby="addArticleModalLabel" aria-hidden="true">
       <div class="modal-dialog">
         <div class="modal-content">
-          <form action="add_article.php" method="POST">
+          <form action="add_article.php" method="POST" enctype="multipart/form-data">
               <div class="modal-header">
                 <h5 class="modal-title" id="addArticleModalLabel">Add New Article</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -356,6 +380,10 @@ require_once 'db_connect.php';
                           <option value="Sports">Sports</option>
                           <option value="Entertainment">Entertainment</option>
                       </select>
+                  </div>
+                  <div class="mb-3">
+                      <label for="image" class="form-label">News Picture (Optional)</label>
+                      <input type="file" class="form-control" id="image" name="image" accept="image/*">
                   </div>
                   <div class="mb-3">
                       <label for="status" class="form-label">Status</label>
@@ -418,7 +446,7 @@ require_once 'db_connect.php';
     <div class="modal fade" id="editArticleModal" tabindex="-1" aria-labelledby="editArticleModalLabel" aria-hidden="true">
       <div class="modal-dialog">
         <div class="modal-content">
-          <form action="update_article.php" method="POST">
+          <form action="update_article.php" method="POST" enctype="multipart/form-data">
               <div class="modal-header">
                 <h5 class="modal-title" id="editArticleModalLabel">Edit Article</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -448,6 +476,10 @@ require_once 'db_connect.php';
                       </select>
                   </div>
                   <div class="mb-3">
+                      <label for="edit_image" class="form-label">News Picture (Optional - leave blank to keep current)</label>
+                      <input type="file" class="form-control" id="edit_image" name="image" accept="image/*">
+                  </div>
+                  <div class="mb-3">
                       <label for="edit_status" class="form-label">Status</label>
                       <select class="form-select" id="edit_status" name="status">
                           <option value="Published">Published</option>
@@ -458,6 +490,47 @@ require_once 'db_connect.php';
               <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button type="submit" class="btn btn-primary">Update Article</button>
+              </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Author Modal -->
+    <div class="modal fade" id="editAuthorModal" tabindex="-1" aria-labelledby="editAuthorModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <form action="update_author.php" method="POST" enctype="multipart/form-data">
+              <div class="modal-header">
+                <h5 class="modal-title" id="editAuthorModalLabel">Edit Author</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                  <input type="hidden" id="edit_author_id" name="id">
+                  <div class="mb-3">
+                      <label for="edit_author_name" class="form-label">Name</label>
+                      <input type="text" class="form-control" id="edit_author_name" name="name" required>
+                  </div>
+                  <div class="mb-3">
+                      <label for="edit_author_email" class="form-label">Email</label>
+                      <input type="email" class="form-control" id="edit_author_email" name="email" required>
+                  </div>
+                  <div class="mb-3">
+                      <label for="edit_author_bio" class="form-label">Short Bio</label>
+                      <textarea class="form-control" id="edit_author_bio" name="bio" rows="2"></textarea>
+                  </div>
+                  <div class="mb-3">
+                      <label for="edit_author_interest" class="form-label">Interest</label>
+                      <input type="text" class="form-control" id="edit_author_interest" name="interest">
+                  </div>
+                  <div class="mb-3">
+                      <label for="edit_author_profile_picture" class="form-label">Profile Picture (Optional - leave blank to keep current)</label>
+                      <input type="file" class="form-control" id="edit_author_profile_picture" name="profile_picture" accept="image/*">
+                  </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary">Update Author</button>
               </div>
           </form>
         </div>
@@ -475,7 +548,7 @@ require_once 'db_connect.php';
             const urlParams = new URLSearchParams(window.location.search);
             if(urlParams.has('success')) {
                 let targetSection = 'articles-section';
-                if(urlParams.get('success') === 'author_added') {
+                if(urlParams.get('success') === 'author_added' || urlParams.get('success') === 'author_updated' || urlParams.get('success') === 'author_deleted') {
                     targetSection = 'authors-section';
                 }
                 const tabToClick = document.querySelector(`[data-target="${targetSection}"]`);
@@ -497,6 +570,18 @@ require_once 'db_connect.php';
                     document.getElementById('edit_news_description').value = this.getAttribute('data-desc');
                     document.getElementById('edit_category').value = this.getAttribute('data-category');
                     document.getElementById('edit_status').value = this.getAttribute('data-status');
+                });
+            });
+
+            // Populate edit author modal
+            const editAuthorBtns = document.querySelectorAll('.edit-author-btn');
+            editAuthorBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.getElementById('edit_author_id').value = this.getAttribute('data-id');
+                    document.getElementById('edit_author_name').value = this.getAttribute('data-name');
+                    document.getElementById('edit_author_email').value = this.getAttribute('data-email');
+                    document.getElementById('edit_author_bio').value = this.getAttribute('data-bio');
+                    document.getElementById('edit_author_interest').value = this.getAttribute('data-interest');
                 });
             });
         });

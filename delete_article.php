@@ -5,18 +5,18 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
     $id = $_GET['id'];
     
     $stmt = $conn->prepare("DELETE FROM news_items WHERE id = ?");
-    $stmt->bind_param("i", $id);
     
-    if ($stmt->execute()) {
+    if ($stmt->execute([$id])) {
         header("Location: index.php?success=article_deleted");
         exit();
     } else {
-        echo "Error deleting record: " . $stmt->error;
+        $errorInfo = $stmt->errorInfo();
+        echo "Error deleting record: " . $errorInfo[2];
     }
-    $stmt->close();
+    $stmt = null;
 } else {
     echo "Invalid ID.";
 }
 
-$conn->close();
+$conn = null;
 ?>
