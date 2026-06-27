@@ -163,7 +163,7 @@ require_once 'db_connect.php';
                                             </thead>
                                             <tbody>
                                                 <?php
-                                                $recent_query = "SELECT * FROM news_items ORDER BY \"date\" DESC FETCH FIRST 5 ROWS ONLY";
+                                                $recent_query = "SELECT t.*, TO_CHAR(t.\"date\", 'YYYY-MM-DD HH24:MI:SS') AS formatted_date FROM (SELECT * FROM news_items ORDER BY \"date\" DESC) t WHERE ROWNUM <= 5";
                                                 $recent_result = @$conn->query($recent_query);
                                                 $rows = $recent_result ? $recent_result->fetchAll(PDO::FETCH_ASSOC) : [];
                                                 if (count($rows) > 0) {
@@ -172,7 +172,9 @@ require_once 'db_connect.php';
                                                         echo "<tr>";
                                                         echo "<td class='ps-4 fw-medium'>" . htmlspecialchars($row['news_title']) . "</td>";
                                                         echo "<td><span class='badge bg-secondary'>" . htmlspecialchars($row['category']) . "</span></td>";
-                                                        echo "<td>" . date('M d, Y', strtotime($row['date'])) . "</td>";
+                                                        
+                                                        $display_date = !empty($row['formatted_date']) ? date('M d, Y', strtotime($row['formatted_date'])) : 'N/A';
+                                                        echo "<td>" . $display_date . "</td>";
                                                         echo "<td><span class='badge bg-" . $status_class . " bg-opacity-10 text-" . $status_class . "'>" . htmlspecialchars($row['status']) . "</span></td>";
                                                         echo "</tr>";
                                                     }
@@ -239,7 +241,7 @@ require_once 'db_connect.php';
                                     </thead>
                                     <tbody>
                                         <?php
-                                        $all_query = "SELECT * FROM news_items ORDER BY id DESC";
+                                        $all_query = "SELECT n.*, TO_CHAR(n.\"date\", 'YYYY-MM-DD HH24:MI:SS') AS formatted_date FROM news_items n ORDER BY n.id DESC";
                                         $all_result = @$conn->query($all_query);
                                         $rows = $all_result ? $all_result->fetchAll(PDO::FETCH_ASSOC) : [];
                                         if (count($rows) > 0) {
@@ -251,7 +253,7 @@ require_once 'db_connect.php';
                                                 echo "<td class='fw-medium d-flex align-items-center'>" . $img_html . htmlspecialchars($row['news_title']) . "</td>";
                                                 echo "<td>" . htmlspecialchars($row['author_name']) . "</td>";
                                                 echo "<td>" . htmlspecialchars($row['category']) . "</td>";
-                                                $display_date = !empty($row['date']) ? date('Y-m-d', strtotime($row['date'])) : 'N/A';
+                                                $display_date = !empty($row['formatted_date']) ? date('Y-m-d H:i', strtotime($row['formatted_date'])) : 'N/A';
                                                 echo "<td>" . $display_date . "</td>";
                                                 $status_class = ($row['status'] == 'Published') ? 'success' : 'warning';
                                                 echo "<td><span class='badge bg-" . $status_class . " bg-opacity-10 text-" . $status_class . "'>" . htmlspecialchars($row['status']) . "</span></td>";
