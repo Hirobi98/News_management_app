@@ -6,7 +6,7 @@
     <title>@yield('title', 'NewsApp - Premium News Reader')</title>
     <meta name="description" content="Stay updated with the latest news on NewsApp. Read, write and share.">
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&display=swap" rel="stylesheet">
     <!-- FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Custom CSS -->
@@ -16,20 +16,32 @@
 <body>
 
     <div class="container">
-        <nav class="glass" style="margin-top: 20px; padding: 15px 30px;">
-            <a href="{{ url('/') }}" class="nav-brand">NewsApp</a>
-            <div class="nav-links">
-                @if(session('user_logged_in'))
-                    <a href="{{ url('/home') }}">News Feed</a>
-                    @if(session('user_role') === 'author' || session('user_role') === 'both')
-                        <a href="{{ url('/news/create') }}">Write News</a>
+        <header class="masthead">
+            <h1 class="masthead-title"><a href="{{ url('/') }}" style="color: inherit; text-decoration: none;">THE <span>GAZETTE</span></a></h1>
+            <div class="masthead-meta">
+                <span>Vol. CCLVI &bull; No. 12</span>
+                <span>{{ date('F j, Y') }}</span>
+                <span>London &bull; New York</span>
+            </div>
+        </header>
+
+        <nav>
+            <div style="display: flex; width: 100%; justify-content: space-between; align-items: center;">
+                <a href="{{ url('/') }}" class="nav-brand" style="text-decoration: none;">THE <span>GAZETTE</span></a>
+                <div class="nav-links">
+                    @if(session('user_logged_in'))
+                        <a href="{{ url('/home') }}">News Feed</a>
+                        @if(session('user_role') === 'author' || session('user_role') === 'both')
+                            <a href="{{ url('/news/create') }}">Write News</a>
+                        @endif
+                        <a href="{{ url('/profile') }}">Profile</a>
+                        <a href="{{ url('/logout') }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.75rem;">Logout</a>
+                    @else
+                        <a href="{{ url('/') }}">Front Page</a>
+                        <a href="{{ url('/login') }}">Login</a>
+                        <a href="{{ url('/register') }}" class="btn btn-primary" style="padding: 6px 12px; font-size: 0.75rem;">Sign Up</a>
                     @endif
-                    <a href="{{ url('/profile') }}">Profile</a>
-                    <a href="{{ url('/logout') }}" class="btn btn-secondary">Logout</a>
-                @else
-                    <a href="{{ url('/login') }}">Login</a>
-                    <a href="{{ url('/register') }}" class="btn btn-primary">Sign Up</a>
-                @endif
+                </div>
             </div>
         </nav>
 
