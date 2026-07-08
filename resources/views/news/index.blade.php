@@ -29,7 +29,7 @@
 
     <div class="news-grid">
         @forelse($newsList as $news)
-            <div class="news-card {{ $loop->first ? 'featured' : '' }}">
+            <div class="news-card {{ $loop->first ? 'featured' : '' }}" onclick="window.location='{{ url('/news/' . $news['id']) }}'">
                 @if($loop->first)
                     <div style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; color: var(--primary-color); font-weight: 800; margin-bottom: 8px;">
                         &bigstar; Editorial Pick

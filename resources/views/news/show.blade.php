@@ -43,30 +43,30 @@
     <div class="comments-section">
         <h2>Letters to the Editor ({{ count($news['comments']) }})</h2>
 
-        <div style="margin-bottom: 40px; background: var(--card-bg); padding: 30px; border: 1px solid var(--border-color); position: relative;">
+        <div style="margin-bottom: 24px; background: var(--card-bg); padding: 20px; border: 1px solid var(--border-color); position: relative;">
             <div style="position: absolute; top: 4px; left: 4px; right: 4px; bottom: 4px; border: 1px solid var(--border-light); pointer-events: none;"></div>
-            <h3 style="font-family: var(--font-serif); font-size: 1.2rem; margin-top: 0; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.5px;">Submit a Letter</h3>
+            <h3 style="font-family: var(--font-serif); font-size: 1.1rem; margin-top: 0; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Submit a Letter</h3>
             <form action="{{ url('/news/' . $news['id'] . '/comment') }}" method="POST">
                 @csrf
-                <div class="form-group" style="margin-bottom: 15px;">
-                    <textarea name="comment" rows="4" class="form-control" placeholder="Write your letter regarding this dispatch..." required></textarea>
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <textarea name="comment" rows="3" class="form-control" placeholder="Write your letter regarding this dispatch..." required></textarea>
                 </div>
-                <button type="submit" class="btn btn-primary">Post Letter</button>
+                <button type="submit" class="btn btn-primary" style="padding: 8px 16px; font-size: 0.75rem;">Post Letter</button>
             </form>
         </div>
 
         @forelse($news['comments'] as $comment)
             <div class="comment">
-                <div style="margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+                <div style="margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
                     <strong><i class="fa-solid fa-signature"></i> {{ $comment['user'] }}</strong>
-                    <span style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.5px;">Reader Response</span>
+                    <span style="font-size: 0.65rem; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.5px;">Reader Response</span>
                 </div>
-                <p style="margin: 0; color: var(--text-secondary); font-family: var(--font-serif); font-size: 1.05rem; line-height: 1.5; font-style: italic;">
+                <p style="margin: 0; font-style: italic;">
                     "{{ $comment['text'] }}"
                 </p>
             </div>
         @empty
-            <p style="color: var(--text-secondary); font-style: italic; text-align: center; margin: 40px 0;">No letters have been received for this dispatch yet. Be the first to write.</p>
+            <p style="color: var(--text-secondary); font-style: italic; text-align: center; margin: 30px 0; font-size: 0.9rem;">No letters have been received for this dispatch yet. Be the first to write.</p>
         @endforelse
     </div>
 </div>

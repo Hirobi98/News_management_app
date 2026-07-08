@@ -18,10 +18,11 @@
     <div class="container">
         <header class="masthead">
             <h1 class="masthead-title"><a href="{{ url('/') }}" style="color: inherit; text-decoration: none;">THE <span>GAZETTE</span></a></h1>
+            <p style="font-family: var(--font-serif); font-style: italic; font-size: 0.95rem; letter-spacing: 2px; text-transform: uppercase; margin: 8px 0 0; color: var(--text-secondary);">Delivering Diligent News & Dispatches</p>
             <div class="masthead-meta">
                 <span>Vol. CCLVI &bull; No. 12</span>
                 <span>{{ date('F j, Y') }}</span>
-                <span>London &bull; New York</span>
+                <span>Khulna &bull; Bangladesh</span>
             </div>
         </header>
 
