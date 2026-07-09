@@ -10,8 +10,13 @@
     </p>
     
     <div style="display: flex; gap: 20px; justify-content: center; margin-bottom: 80px;">
-        <a href="{{ url('/register') }}" class="btn btn-primary" style="font-size: 1rem; padding: 14px 28px;">Subscribe & Register</a>
-        <a href="{{ url('/login') }}" class="btn btn-secondary" style="font-size: 1rem; padding: 14px 28px;">Sign In to Account</a>
+        @if(session('user_logged_in'))
+            <a href="{{ url('/home') }}" class="btn btn-primary" style="font-size: 1rem; padding: 14px 28px;">Go to News Feed</a>
+            <a href="{{ url('/profile') }}" class="btn btn-secondary" style="font-size: 1rem; padding: 14px 28px;">View Profile</a>
+        @else
+            <a href="{{ url('/register') }}" class="btn btn-primary" style="font-size: 1rem; padding: 14px 28px;">Subscribe & Register</a>
+            <a href="{{ url('/login') }}" class="btn btn-secondary" style="font-size: 1rem; padding: 14px 28px;">Sign In to Account</a>
+        @endif
     </div>
 
     <div class="glass" style="text-align: left; max-width: 900px; width: 100%; margin: 0 auto; padding: 40px; box-sizing: border-box;">
