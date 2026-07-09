@@ -1,20 +1,22 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="glass" style="max-width: 800px; margin: 40px auto; padding: 40px;">
-    <h1 style="margin-top: 0;">Write an Article</h1>
-    <p style="color: var(--text-secondary); margin-bottom: 30px;">Publish your news to the world. Please adhere to the community guidelines.</p>
+<div class="glass" style="max-width: 700px; margin: 40px auto; border-top: 4px solid var(--primary-color);">
+    <h1 style="font-family: var(--font-serif); font-size: 2.2rem; margin-top: 0; margin-bottom: 8px;">Draft a Dispatch</h1>
+    <p style="color: var(--text-secondary); margin-bottom: 30px; font-size: 0.95rem; font-style: italic;">
+        Submit your article to the editorial board. Please ensure all dispatches adhere strictly to the community guidelines.
+    </p>
 
     <form action="{{ url('/news') }}" method="POST">
         @csrf
         <div class="form-group">
-            <label for="title">Article Title</label>
-            <input type="text" id="title" name="title" class="form-control" required placeholder="Enter a catchy title...">
+            <label for="title">Article Headline</label>
+            <input type="text" id="title" name="title" class="form-control" required placeholder="Enter a compelling headline...">
         </div>
 
         <div class="form-group">
-            <label for="channel">News Channel</label>
-            <select id="channel" name="channel" class="form-control" required style="appearance: none;">
+            <label for="channel">Editorial Department</label>
+            <select id="channel" name="channel" class="form-control" required>
                 <option value="" disabled selected>Select a category...</option>
                 <option value="Technology">Technology</option>
                 <option value="Finance">Finance</option>
@@ -26,13 +28,13 @@
         </div>
 
         <div class="form-group">
-            <label for="content">Article Content</label>
-            <textarea id="content" name="content" class="form-control" rows="10" required placeholder="Write your news article here..."></textarea>
+            <label for="content">Dispatch Content</label>
+            <textarea id="content" name="content" class="form-control" rows="12" required placeholder="Write your news article here..."></textarea>
         </div>
 
-        <div class="flex gap-2" style="margin-top: 30px;">
-            <button type="submit" class="btn btn-primary">Publish News</button>
-            <a href="{{ url('/home') }}" class="btn btn-secondary">Cancel</a>
+        <div class="flex gap-2" style="margin-top: 30px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-feather"></i> Publish Dispatch</button>
+            <a href="{{ url('/home') }}" class="btn btn-secondary" style="text-decoration: none;">Cancel</a>
         </div>
     </form>
 </div>

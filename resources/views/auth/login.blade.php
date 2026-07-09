@@ -2,20 +2,20 @@
 
 @section('content')
 <div class="auth-card glass">
-    <h1>Welcome Back</h1>
-    <p>Login to read and write news.</p>
+    <h1>Account Access</h1>
+    <p>Sign in to read and publish dispatches.</p>
 
     <!-- Social Logins -->
     <button class="btn btn-social">
-        <i class="fa-brands fa-google" style="color: #DB4437;"></i>
-        Sign in with Google
+        <i class="fa-brands fa-google" style="color: var(--text-primary);"></i>
+        Continue with Google
     </button>
     <button class="btn btn-social">
-        <i class="fa-brands fa-facebook" style="color: #4267B2;"></i>
-        Sign in with Facebook
+        <i class="fa-brands fa-facebook-f" style="color: var(--text-primary);"></i>
+        Continue with Facebook
     </button>
 
-    <div class="divider">OR</div>
+    <div class="divider">OR USE REGISTRY</div>
 
     <form action="{{ url('/login') }}" method="POST">
         @csrf
@@ -24,15 +24,15 @@
             <input type="email" id="email" name="email" class="form-control" required placeholder="you@example.com">
         </div>
         <div class="form-group" style="text-align: left;">
-            <label for="password">Password</label>
+            <label for="password">Security Password</label>
             <input type="password" id="password" name="password" class="form-control" required placeholder="••••••••">
         </div>
         
-        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">Login</button>
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 15px;">Authenticate</button>
     </form>
     
-    <p style="margin-top: 20px; font-size: 0.9rem;">
-        Don't have an account? <a href="{{ url('/register') }}">Sign up here</a>
+    <p style="margin-top: 25px; font-size: 0.9rem; color: var(--text-secondary);">
+        Not registered yet? <a href="{{ url('/register') }}" style="font-weight: 700;">Subscribe here</a>
     </p>
 </div>
 @endsection

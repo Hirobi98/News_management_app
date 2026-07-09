@@ -1,36 +1,34 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="glass" style="max-width: 600px; margin: 40px auto; padding: 40px; text-align: center;">
-    <div style="width: 120px; height: 120px; background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 3rem; color: white;">
-        <i class="fa-solid fa-user"></i>
+<div class="profile-badge">
+    <div class="profile-avatar">
+        <i class="fa-solid fa-user-tie"></i>
     </div>
     
-    <h1 style="margin-bottom: 5px;">{{ $user['name'] }}</h1>
-    <p style="color: var(--text-secondary); margin-top: 0; font-size: 1.1rem;">{{ $user['email'] }}</p>
+    <h1 style="font-family: var(--font-serif); font-size: 2.2rem; margin: 0 0 5px; font-weight: 700;">{{ $user['name'] }}</h1>
+    <p style="color: var(--text-secondary); margin-top: 0; font-size: 1rem; font-family: var(--font-serif); font-style: italic;">{{ $user['email'] }}</p>
 
-    <div style="display: inline-block; background: rgba(255,255,255,0.1); padding: 5px 15px; border-radius: 20px; margin-top: 10px; font-weight: 600; text-transform: capitalize;">
-        Role: {{ $user['role'] }}
+    <div class="profile-role">
+        Registry: {{ $user['role'] }} Contributor
     </div>
 
-    <div class="divider" style="margin: 30px 0;"></div>
-
-    <div style="display: flex; justify-content: space-around; text-align: center;">
-        <div>
-            <h3 style="margin-bottom: 5px; font-size: 1.5rem;">{{ $user['saved_articles'] }}</h3>
-            <p style="color: var(--text-secondary); margin: 0; font-size: 0.9rem;">Saved Articles</p>
+    <div style="display: flex; justify-content: space-around; text-align: center; margin-top: 40px; border-top: 1px solid var(--border-color); padding-top: 30px;">
+        <div style="flex: 1; border-right: 1px solid var(--border-color); padding: 0 10px;">
+            <h3 style="margin-bottom: 5px; font-size: 1.8rem; font-family: var(--font-serif); font-weight: 700; color: var(--primary-color);">{{ $user['saved_articles'] }}</h3>
+            <p style="color: var(--text-secondary); margin: 0; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;">Saved Dispatches</p>
         </div>
         
         @if($user['role'] === 'author' || $user['role'] === 'both')
-        <div>
-            <h3 style="margin-bottom: 5px; font-size: 1.5rem; color: var(--secondary-color);">{{ $user['published_articles'] }}</h3>
-            <p style="color: var(--text-secondary); margin: 0; font-size: 0.9rem;">Published News</p>
+        <div style="flex: 1; border-right: 1px solid var(--border-color); padding: 0 10px;">
+            <h3 style="margin-bottom: 5px; font-size: 1.8rem; font-family: var(--font-serif); font-weight: 700; color: var(--primary-color);">{{ $user['published_articles'] }}</h3>
+            <p style="color: var(--text-secondary); margin: 0; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;">Published Stories</p>
         </div>
         @endif
 
-        <div>
-            <h3 style="margin-bottom: 5px; font-size: 1.1rem; padding-top: 5px;">{{ $user['joined'] }}</h3>
-            <p style="color: var(--text-secondary); margin: 0; font-size: 0.9rem;">Joined Date</p>
+        <div style="flex: 1; padding: 0 10px;">
+            <h3 style="margin-bottom: 5px; font-size: 1.25rem; font-family: var(--font-serif); font-weight: 700; padding-top: 6px; color: var(--text-primary);">{{ $user['joined'] }}</h3>
+            <p style="color: var(--text-secondary); margin: 0; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;">Registry Date</p>
         </div>
     </div>
 </div>

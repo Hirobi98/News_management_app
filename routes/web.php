@@ -18,9 +18,6 @@ use App\Http\Controllers\ProfileController;
 
 // Landing Page
 Route::get('/', function () {
-    if (session('user_logged_in')) {
-        return redirect('/home');
-    }
     return view('welcome');
 });
 
