@@ -9,23 +9,7 @@ class AuthController extends Controller
 {
     public function showLogin()
     {
-        // Auto-seed default Admin if none exists to facilitate testing
-        $adminExists = DB::table('USERS')
-            ->where(DB::raw('LOWER(role)'), 'admin')
-            ->exists();
-
-        if (!$adminExists) {
-            DB::table('USERS')->insert([
-                'name' => 'System Administrator',
-                'email' => 'admin@example.com',
-                'password' => password_hash('admin123', PASSWORD_BCRYPT),
-                'role' => 'Admin',
-                'bio' => 'Lead administrator of The Gazette.',
-                'interest' => 'Operations',
-                'profile_picture' => null
-            ]);
-        }
-
+        // Admin auto-seed shoriyeneoa hoyeche jeno default login page-e crash na kore
         return view('auth.login');
     }
 
@@ -36,27 +20,28 @@ class AuthController extends Controller
             'password' => 'required|string'
         ]);
 
-        // Fetch user from Oracle USERS table
+        // Oracle USERS table theke uppercase identity dhore user fetch kora hochhe
         $user = DB::table('USERS')
-            ->where(DB::raw('LOWER(email)'), strtolower($request->email))
+            ->where(DB::raw('LOWER("EMAIL")'), strtolower($request->email))
             ->get()
             ->first();
+        dd($user);
 
-        if (!$user || !password_verify($request->password, $user->password)) {
+        if (!$user || !password_verify($request->password, $user->PASSWORD)) {
             return back()->withErrors(['email' => 'Invalid email signature or security password.'])->withInput();
         }
 
-        // Establish session variables
+        // Session variable establish kora hochhe UPPERCASE object property diye
         session([
-            'user_id' => $user->id,
+            'user_id' => $user->ID,
             'user_logged_in' => true,
-            'user_name' => $user->name,
-            'user_email' => $user->email,
-            'user_role' => $user->role
+            'user_name' => $user->NAME,
+            'user_email' => $user->EMAIL,
+            'user_role' => $user->ROLE
         ]);
 
-        // Redirect based on role
-        $role = strtolower($user->role);
+        // Role-er upor vitti kore dashboard-e redirect kora hochhe
+        $role = strtolower($user->ROLE);
         if ($role === 'admin') {
             return redirect('/admin/dashboard')->with('success', 'Successfully authenticated as Administrator.');
         } elseif ($role === 'author' || $role === 'both') {
@@ -80,9 +65,9 @@ class AuthController extends Controller
             'role' => 'required|string'
         ]);
 
-        // Check if email signature already exists in Oracle USERS table
+        // Email description check korar jonno query
         $existing = DB::table('USERS')
-            ->where(DB::raw('LOWER(email)'), strtolower($request->email))
+            ->where(DB::raw('LOWER("EMAIL")'), strtolower($request->email))
             ->get()
             ->first();
 
@@ -90,7 +75,7 @@ class AuthController extends Controller
             return back()->withErrors(['email' => 'This email signature is already registered in our archives.'])->withInput();
         }
 
-        // Map registration role option to database string
+        // Registration form er role mapping
         $roleMap = [
             'reader' => 'Reader',
             'author' => 'Author',
@@ -98,33 +83,40 @@ class AuthController extends Controller
         ];
         $role = $roleMap[$request->role] ?? 'Reader';
 
-        // Insert using sequence/trigger auto-increment (AUTHORS_TRG)
-        DB::table('USERS')->insert([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => password_hash($request->password, PASSWORD_BCRYPT),
-            'role' => $role,
-            'bio' => null,
-            'interest' => null,
-            'profile_picture' => null
-        ]);
+        // Oracle case-mismatch rodh korte UPPERCASE key-te input kora hochhe
+        DB::statement(
+            'INSERT INTO USERS
+    (NAME, EMAIL, PASSWORD, ROLE, BIO, INTEREST, PROFILE_PICTURE)
+    VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [
+                $request->name,
+                $request->email,
+                password_hash($request->password, PASSWORD_BCRYPT),
+                $role,
+                null,
+                null,
+                null,
+            ]
+        );
 
-        // Retrieve newly created user to verify session ID
+
+        // Shaddho-shristi (Newly created) user session set korar jonno database checking
         $user = DB::table('USERS')
-            ->where(DB::raw('LOWER(email)'), strtolower($request->email))
+            ->where(DB::raw('LOWER("EMAIL")'), strtolower($request->email))
             ->get()
             ->first();
+        dd($user);
 
         session([
-            'user_id' => $user->id,
+            'user_id' => $user->ID,
             'user_logged_in' => true,
-            'user_name' => $user->name,
-            'user_email' => $user->email,
-            'user_role' => $user->role
+            'user_name' => $user->NAME,
+            'user_email' => $user->EMAIL,
+            'user_role' => $user->ROLE
         ]);
 
-        // Redirect appropriately
-        $roleLower = strtolower($user->role);
+        // Reader ebong Author dashboard er redirect check
+        $roleLower = strtolower($user->ROLE);
         if ($roleLower === 'admin') {
             return redirect('/admin/dashboard')->with('success', 'Admin profile generated successfully.');
         } elseif ($roleLower === 'author' || $roleLower === 'both') {
