@@ -3,44 +3,40 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class NewsController extends Controller
 {
-    // Hardcoded dummy data for news
-    private $newsData = [
-        1 => [
-            'id' => 1,
-            'title' => 'The Future of Artificial Intelligence',
-            'content' => 'AI is revolutionizing the way we interact with technology. From chatbots to self-driving cars, the possibilities are endless. In this article, we explore the potential impact of AI on various industries and the ethical considerations that come with it...',
-            'author' => 'Jane Smith',
-            'channel' => 'Technology',
-            'date' => '2026-07-07',
-            'comments' => [
-                ['user' => 'Alex', 'text' => 'Great insights! AI is truly the future.'],
-                ['user' => 'Sarah', 'text' => 'I worry about the ethical implications mentioned.']
-            ]
-        ],
-        2 => [
-            'id' => 2,
-            'title' => 'Global Markets Reach Record Highs',
-            'content' => 'Stock markets around the world have surged to unprecedented levels, driven by strong economic data and tech sector growth. Investors remain optimistic despite looming inflation concerns...',
-            'author' => 'Michael Chen',
-            'channel' => 'Finance',
-            'date' => '2026-07-06',
-            'comments' => [
-                ['user' => 'InvestorPro', 'text' => 'Time to take some profits!']
-            ]
-        ],
-        3 => [
-            'id' => 3,
-            'title' => 'Breakthrough in Renewable Energy',
-            'content' => 'Scientists have developed a highly efficient solar panel that could significantly reduce the cost of renewable energy. The new technology utilizes advanced materials to capture a wider spectrum of sunlight...',
-            'author' => 'Dr. Elena Rossi',
-            'channel' => 'Science',
-            'date' => '2026-07-05',
+    private function mapNewsItem($row)
+    {
+        // Handle CLOB data type for Oracle news descriptions
+        $content = '';
+        if (isset($row->news_description)) {
+            if (is_resource($row->news_description)) {
+                $content = stream_get_contents($row->news_description);
+            } else {
+                $content = (string)$row->news_description;
+            }
+        }
+
+        // Format dates consistently
+        $dateStr = 'N/A';
+        if (!empty($row->date)) {
+            $dateStr = date('F j, Y', strtotime($row->date));
+        }
+
+        return [
+            'id' => $row->id,
+            'title' => $row->news_title,
+            'content' => $content,
+            'author' => $row->author_name,
+            'channel' => $row->category,
+            'date' => $dateStr,
+            'image' => $row->image ?? '',
+            'status' => $row->status ?? 'Draft',
             'comments' => []
-        ],
-    ];
+        ];
+    }
 
     public function index()
     {
@@ -48,7 +44,18 @@ class NewsController extends Controller
             return redirect('/login')->with('error', 'Please login to view news.');
         }
 
-        return view('news.index', ['newsList' => $this->newsData]);
+        // Query published news from Oracle table using uppercase table name
+        $newsRows = DB::table('NEWS_ITEMS')
+            ->where(DB::raw('LOWER(status)'), 'published')
+            ->orderBy('id', 'desc')
+            ->get();
+
+        $newsList = [];
+        foreach ($newsRows as $row) {
+            $newsList[] = $this->mapNewsItem($row);
+        }
+
+        return view('news.index', ['newsList' => $newsList]);
     }
 
     public function show($id)
@@ -57,10 +64,27 @@ class NewsController extends Controller
             return redirect('/login')->with('error', 'Please login to view news.');
         }
 
-        $news = $this->newsData[$id] ?? null;
+        // Fetch news article by ID
+        $newsRow = DB::table('NEWS_ITEMS')->where('id', $id)->first();
 
-        if (!$news) {
+        if (!$newsRow) {
             return redirect('/home')->with('error', 'News article not found.');
+        }
+
+        $news = $this->mapNewsItem($newsRow);
+
+        // Fetch comments for this article
+        $commentRows = DB::table('COMMENTS')
+            ->where('article_id', $id)
+            ->orderBy('id', 'asc')
+            ->get();
+
+        foreach ($commentRows as $cRow) {
+            $news['comments'][] = [
+                'user' => $cRow->user_name,
+                'text' => $cRow->comment_text,
+                'date' => $cRow->date
+            ];
         }
 
         return view('news.show', ['news' => $news]);
@@ -68,7 +92,8 @@ class NewsController extends Controller
 
     public function create()
     {
-        if (!session('user_logged_in') || session('user_role') === 'reader') {
+        $role = strtolower(session('user_role'));
+        if (!session('user_logged_in') || $role === 'reader') {
             return redirect('/home')->with('error', 'You do not have permission to write news.');
         }
 
@@ -77,14 +102,29 @@ class NewsController extends Controller
 
     public function store(Request $request)
     {
-        if (!session('user_logged_in') || session('user_role') === 'reader') {
+        $role = strtolower(session('user_role'));
+        if (!session('user_logged_in') || $role === 'reader') {
             return redirect('/home')->with('error', 'You do not have permission to write news.');
         }
 
-        // Mock store action
-        $title = $request->input('title');
-        
-        return redirect('/home')->with('success', "Your news article '{$title}' was successfully published!");
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'content' => 'required|string',
+            'category' => 'required|string|max:50'
+        ]);
+
+        // Insert news item as Draft. ID is generated by trigger NEWS_ITEMS_TRG.
+        DB::table('NEWS_ITEMS')->insert([
+            'news_title' => $request->title,
+            'author_name' => session('user_name', 'Anonymous Writer'),
+            'news_description' => $request->content,
+            'category' => $request->category,
+            'status' => 'Draft',
+            'date' => DB::raw('SYSDATE'),
+            'image' => null
+        ]);
+
+        return redirect('/author/dashboard')->with('success', "Your dispatch '{$request->title}' was successfully saved as a draft!");
     }
 
     public function storeComment(Request $request, $id)
@@ -93,7 +133,90 @@ class NewsController extends Controller
             return redirect('/login');
         }
 
-        // Mock comment store
-        return redirect()->back()->with('success', 'Your comment was added successfully!');
+        $request->validate([
+            'comment' => 'required|string|max:4000'
+        ]);
+
+        // Insert comment. ID is generated by trigger COMMENTS_BIR.
+        DB::table('COMMENTS')->insert([
+            'article_id' => $id,
+            'user_name' => session('user_name', 'Anonymous Reader'),
+            'comment_text' => $request->comment,
+            'status' => 'Approved',
+            'date' => DB::raw('SYSDATE')
+        ]);
+
+        return redirect()->back()->with('success', 'Your letter was added successfully!');
+    }
+
+    // Admin Dashboard Logic
+    public function adminDashboard()
+    {
+        $totalArticles = DB::table('NEWS_ITEMS')->count();
+        $totalUsers = DB::table('USERS')->count();
+        $totalComments = DB::table('COMMENTS')->count();
+
+        // Retrieve all articles (draft and published)
+        $allNewsRows = DB::table('NEWS_ITEMS')
+            ->orderBy('id', 'desc')
+            ->get();
+
+        $newsList = [];
+        foreach ($allNewsRows as $row) {
+            $newsList[] = $this->mapNewsItem($row);
+        }
+
+        // Retrieve audit logs populated by the NEWS_PUBLISH_TRG database trigger
+        $auditLogs = DB::table('AUDIT_LOGS')
+            ->orderBy('created_at', 'desc')
+            ->take(10)
+            ->get();
+
+        return view('admin.dashboard', [
+            'totalArticles' => $totalArticles,
+            'totalUsers' => $totalUsers,
+            'totalComments' => $totalComments,
+            'newsList' => $newsList,
+            'auditLogs' => $auditLogs
+        ]);
+    }
+
+    // Stored Procedure and Transaction execution for publishing news
+    public function publishNews($id)
+    {
+        DB::transaction(function() use ($id) {
+            // Execute the Oracle stored procedure publish_news_proc
+            DB::statement("BEGIN publish_news_proc(?); END;", [$id]);
+        });
+
+        return redirect()->back()->with('success', 'Dispatch successfully published via Oracle Stored Procedure!');
+    }
+
+    // Author Dashboard Logic
+    public function authorDashboard()
+    {
+        $authorName = session('user_name');
+
+        // Fetch news written by this author
+        $authorNewsRows = DB::table('NEWS_ITEMS')
+            ->where(DB::raw('LOWER(author_name)'), strtolower($authorName))
+            ->orderBy('id', 'desc')
+            ->get();
+
+        $newsList = [];
+        foreach ($authorNewsRows as $row) {
+            $newsList[] = $this->mapNewsItem($row);
+        }
+
+        return view('author.dashboard', [
+            'newsList' => $newsList
+        ]);
+    }
+
+    // Admin action to delete an article
+    public function deleteNews($id)
+    {
+        DB::table('NEWS_ITEMS')->where('id', $id)->delete();
+        return redirect()->back()->with('success', 'Article deleted from archives.');
     }
 }
