@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-
+use Illuminate\Support\Facades\Hash;
 class AuthController extends Controller
 {
     public function showLogin()
@@ -25,23 +25,23 @@ class AuthController extends Controller
             ->where(DB::raw('LOWER("EMAIL")'), strtolower($request->email))
             ->get()
             ->first();
-        dd($user);
 
-        if (!$user || !password_verify($request->password, $user->PASSWORD)) {
+
+        if (!$user || !Hash::check($request->password, $user->password)) {
             return back()->withErrors(['email' => 'Invalid email signature or security password.'])->withInput();
         }
 
         // Session variable establish kora hochhe UPPERCASE object property diye
         session([
-            'user_id' => $user->ID,
+            'user_id' => $user->id,
             'user_logged_in' => true,
-            'user_name' => $user->NAME,
-            'user_email' => $user->EMAIL,
-            'user_role' => $user->ROLE
+            'user_name' => $user->name,
+            'user_email' => $user->email,
+            'user_role' => $user->role
         ]);
 
         // Role-er upor vitti kore dashboard-e redirect kora hochhe
-        $role = strtolower($user->ROLE);
+        $role = strtolower($user->role);
         if ($role === 'admin') {
             return redirect('/admin/dashboard')->with('success', 'Successfully authenticated as Administrator.');
         } elseif ($role === 'author' || $role === 'both') {
@@ -91,7 +91,7 @@ class AuthController extends Controller
             [
                 $request->name,
                 $request->email,
-                password_hash($request->password, PASSWORD_BCRYPT),
+                Hash::make($request->password),
                 $role,
                 null,
                 null,
@@ -105,18 +105,18 @@ class AuthController extends Controller
             ->where(DB::raw('LOWER("EMAIL")'), strtolower($request->email))
             ->get()
             ->first();
-        dd($user);
+
 
         session([
-            'user_id' => $user->ID,
+            'user_id' => $user->id,
             'user_logged_in' => true,
-            'user_name' => $user->NAME,
-            'user_email' => $user->EMAIL,
-            'user_role' => $user->ROLE
+            'user_name' => $user->name,
+            'user_email' => $user->email,
+            'user_role' => $user->role
         ]);
 
         // Reader ebong Author dashboard er redirect check
-        $roleLower = strtolower($user->ROLE);
+        $roleLower = strtolower($user->role);
         if ($roleLower === 'admin') {
             return redirect('/admin/dashboard')->with('success', 'Admin profile generated successfully.');
         } elseif ($roleLower === 'author' || $roleLower === 'both') {
