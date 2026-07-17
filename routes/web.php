@@ -41,3 +41,4 @@ Route::post('/news/{id}/comment', [NewsController::class, 'storeComment']);
 
 // Profile Routes
 Route::get('/profile', [ProfileController::class, 'index']);
+Route::post('/profile/update', [ProfileController::class, 'update']);

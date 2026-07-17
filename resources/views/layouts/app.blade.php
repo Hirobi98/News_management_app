@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'NewsApp - Premium News Reader')</title>
-    <meta name="description" content="Stay updated with the latest news on NewsApp. Read, write and share.">
+    <title>@yield('title', 'The Gazette - Vintage News Reader')</title>
+    <meta name="description" content="Stay updated with the latest news on The Gazette.">
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;0,800;1,400&display=swap" rel="stylesheet">
     <!-- FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Custom CSS -->
@@ -16,25 +16,28 @@
 <body>
 
     <div class="container">
-        <nav class="glass" style="margin-top: 20px; padding: 15px 30px;">
-            <a href="{{ url('/') }}" class="nav-brand">NewsApp</a>
+        <nav>
+            <div style="font-family: var(--font-sans); font-size: 0.8rem; letter-spacing: 2px; color: var(--text-secondary); margin-bottom: 5px; text-transform: uppercase;">
+                Vol. CXXIV — {{ date('l, F j, Y') }}
+            </div>
+            <a href="{{ url('/') }}" class="nav-brand">The Gazette</a>
             <div class="nav-links">
+                <a href="{{ url('/home') }}">Front Page</a>
+                <a href="{{ url('/home') }}">World</a>
+                <a href="{{ url('/home') }}">Opinion</a>
+                <a href="{{ url('/home') }}">Culture</a>
                 @if(session('user_logged_in'))
-                    <a href="{{ url('/home') }}">News Feed</a>
-                    @if(session('user_role') === 'author' || session('user_role') === 'both')
-                        <a href="{{ url('/news/create') }}">Write News</a>
-                    @endif
-                    <a href="{{ url('/profile') }}">Profile</a>
-                    <a href="{{ url('/logout') }}" class="btn btn-secondary">Logout</a>
+                    <a href="{{ url('/profile') }}">Account</a>
+                    <a href="{{ url('/logout') }}">Logout</a>
                 @else
                     <a href="{{ url('/login') }}">Login</a>
-                    <a href="{{ url('/register') }}" class="btn btn-primary">Sign Up</a>
+                    <a href="{{ url('/register') }}">Subscribe</a>
                 @endif
             </div>
         </nav>
 
         @if(session('success'))
-            <div class="alert alert-success glass">
+            <div class="alert alert-success">
                 {{ session('success') }}
             </div>
         @endif
@@ -43,8 +46,8 @@
             @yield('content')
         </main>
         
-        <footer class="text-center mt-4 mb-4" style="color: var(--text-secondary); padding-top: 40px; border-top: 1px solid var(--glass-border);">
-            <p>&copy; {{ date('Y') }} NewsApp. All rights reserved.</p>
+        <footer class="text-center mt-4 mb-4" style="color: var(--text-secondary); padding-top: 40px; border-top: 1px solid var(--border-color); font-family: var(--font-sans); font-size: 0.85rem; text-transform: uppercase;">
+            <p>&copy; {{ date('Y') }} The Gazette. All rights reserved.</p>
         </footer>
     </div>
 
