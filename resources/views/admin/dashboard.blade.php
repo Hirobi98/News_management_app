@@ -28,9 +28,9 @@
         <div class="alert alert-success">{{ session('success') }}</div>
     @endif
 
-    <h2 style="font-family: var(--font-serif); font-size: 1.5rem; text-transform: uppercase; margin-bottom: 20px;">Final Review (Pending_Admin)</h2>
+    <h2 style="font-family: var(--font-serif); font-size: 1.5rem; text-transform: uppercase; margin-bottom: 20px;">Final Review Queue</h2>
 
-    <div class="news-grid">
+    <div class="news-grid" style="margin-bottom: 60px;">
         @php
             $pendingAdminNews = array_filter($newsList, function($n) {
                 return $n['status'] === 'Pending_Admin';
@@ -38,24 +38,45 @@
         @endphp
 
         @forelse($pendingAdminNews as $news)
-            <div class="news-card">
-                <h3>{{ $news['title'] }}</h3>
-                <div class="news-meta" style="border: none; padding-top: 0; padding-bottom: 10px; border-bottom: 1px solid var(--border-color); margin-bottom: 15px;">
-                    <span class="author">BY {{ $news['author'] }}</span>
-                    <span class="channel" style="color: var(--primary-color);">VIA {{ $news['target_channel_name'] }}</span>
+            @php
+                $newsChannel = null;
+                $newsAuthor = null;
+                foreach($channels as $c) {
+                    $cName = $c->name ?? $c->NAME ?? null;
+                    if ($cName === $news['target_channel_name']) {
+                        $newsChannel = $c;
+                        break;
+                    }
+                }
+                foreach($authors as $a) {
+                    $aName = $a->name ?? $a->NAME ?? null;
+                    if ($aName === $news['author']) {
+                        $newsAuthor = $a;
+                        break;
+                    }
+                }
+            @endphp
+            <div class="news-card" style="border: 2px solid var(--primary-color);">
+                <div style="background: rgba(0,0,0,0.03); padding: 15px; margin: -20px -20px 20px -20px; border-bottom: 1px solid var(--border-color);">
+                    <p style="margin: 0; font-family: var(--font-sans); font-size: 0.8rem; text-transform: uppercase;">
+                        <strong>Channel:</strong> {{ $newsChannel->name ?? $newsChannel->NAME ?? $news['target_channel_name'] }} ({{ $newsChannel->email ?? $newsChannel->EMAIL ?? 'No Email' }})<br>
+                        <strong>Author:</strong> {{ $newsAuthor->name ?? $newsAuthor->NAME ?? $news['author'] }} ({{ $newsAuthor->email ?? $newsAuthor->EMAIL ?? 'No Email' }})
+                    </p>
                 </div>
+                
+                <h3>{{ $news['title'] }}</h3>
                 <p style="font-style: italic;">{{ $news['content'] }}</p>
                 
                 <div style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 15px;">
-                    <form action="{{ url('/admin/review/' . $news['id']) }}" method="POST">
+                    <form action="{{ url('/admin/review/' . $news['id']) }}" method="POST" id="admin-review-form-{{ $news['id'] }}">
                         @csrf
-                        <div class="form-group">
+                        <div class="form-group" style="margin-bottom: 10px;">
                             <label>Feedback (Required if Rejecting)</label>
-                            <textarea name="feedback" class="form-control" rows="2" placeholder="Explain why it was rejected..."></textarea>
+                            <textarea name="feedback" class="form-control" rows="2" placeholder="Explain rejection..."></textarea>
                         </div>
                         <div style="display: flex; gap: 10px;">
-                            <button type="submit" name="action" value="approve" class="btn btn-primary" style="flex: 1; background: #2E7D32; border-color: #2E7D32;">Publish Article</button>
-                            <button type="submit" name="action" value="reject" class="btn btn-secondary" style="flex: 1; border-color: var(--secondary-color); color: var(--secondary-color);">Reject & Send Back</button>
+                            <button type="submit" name="action" value="approve" class="btn btn-primary" style="flex: 1; background: #2E7D32; border-color: #2E7D32;">Publish Now</button>
+                            <button type="submit" name="action" value="reject" class="btn btn-secondary" style="flex: 1; border-color: var(--secondary-color); color: var(--secondary-color);">Reject</button>
                         </div>
                     </form>
                 </div>
@@ -65,6 +86,51 @@
                 <p style="font-family: var(--font-serif); color: var(--text-secondary); font-size: 1.2rem;">No pending articles waiting for final review.</p>
             </div>
         @endforelse
+    </div>
+
+    <!-- UNIVERSAL DIRECTORY -->
+    <h2 style="font-family: var(--font-serif); font-size: 2rem; text-transform: uppercase; margin-bottom: 20px; border-bottom: 2px solid var(--primary-color); padding-bottom: 10px;">Universal Directory</h2>
+
+    <h3 style="font-family: var(--font-serif); margin-top: 30px;">News Channels & Rosters</h3>
+    <div style="background: var(--card-bg); padding: 20px; border: 1px solid var(--border-color);">
+        @foreach($channels as $channel)
+            <div style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px dashed var(--border-color);">
+                <strong>{{ $channel->name ?? $channel->NAME }}</strong> ({{ $channel->email ?? $channel->EMAIL }})
+                <div style="margin-top: 10px; padding-left: 20px;">
+                    <em>Hired Authors:</em>
+                    @php $hasAuthors = false; @endphp
+                    <ul style="margin-top: 5px; font-family: var(--font-sans); font-size: 0.9rem;">
+                    @if(isset($channelRosters[$channel->id ?? $channel->ID]))
+                        @foreach($channelRosters[$channel->id ?? $channel->ID] as $ra)
+                            @php $hasAuthors = true; @endphp
+                            <li>{{ $ra->author_name ?? $ra->AUTHOR_NAME }} ({{ $ra->author_email ?? $ra->AUTHOR_EMAIL }})</li>
+                        @endforeach
+                    @endif
+                    @if(!$hasAuthors)
+                        <li style="color: var(--text-secondary); font-style: italic;">No authors hired yet.</li>
+                    @endif
+                    </ul>
+                </div>
+            </div>
+        @endforeach
+    </div>
+
+    <h3 style="font-family: var(--font-serif); margin-top: 30px;">All Authors</h3>
+    <div style="background: var(--card-bg); padding: 20px; border: 1px solid var(--border-color); font-family: var(--font-sans); font-size: 0.9rem;">
+        <ul style="list-style: none; padding: 0;">
+        @foreach($authors as $author)
+            <li style="padding: 5px 0; border-bottom: 1px solid #eee;"><strong>{{ $author->name ?? $author->NAME }}</strong> - {{ $author->email ?? $author->EMAIL }}</li>
+        @endforeach
+        </ul>
+    </div>
+
+    <h3 style="font-family: var(--font-serif); margin-top: 30px;">All Readers</h3>
+    <div style="background: var(--card-bg); padding: 20px; border: 1px solid var(--border-color); font-family: var(--font-sans); font-size: 0.9rem;">
+        <ul style="list-style: none; padding: 0;">
+        @foreach($readers as $reader)
+            <li style="padding: 5px 0; border-bottom: 1px solid #eee;"><strong>{{ $reader->name ?? $reader->NAME }}</strong> - {{ $reader->email ?? $reader->EMAIL }}</li>
+        @endforeach
+        </ul>
     </div>
 
 </div>

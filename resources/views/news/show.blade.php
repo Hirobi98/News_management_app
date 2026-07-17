@@ -10,10 +10,10 @@
     </h1>
     
     <div class="news-meta" style="border-bottom: 1px solid var(--glass-border); padding-bottom: 20px; margin-bottom: 20px;">
-        <div>
-            <span style="margin-right: 15px;"><i class="fa-solid fa-user"></i> {{ $news['author'] }}</span>
-            <span class="channel">{{ $news['channel'] }}</span>
-            <span style="margin-left: 15px;"><i class="fa-regular fa-calendar"></i> {{ $news['date'] }}</span>
+        <div style="margin-bottom: 10px;">
+            <span class="channel" style="color: var(--primary-color); margin-right: 15px;">PUBLISHED VIA {{ strtoupper($news['target_channel_name']) }}</span>
+            <span class="date" style="margin-right: 15px;"><i class="fa-regular fa-clock"></i> {{ $news['date'] }}</span>
+            <span class="author"><i class="fa-solid fa-user"></i> WRITTEN BY {{ strtoupper($news['author']) }}</span>
         </div>
         <div style="display: flex; gap: 10px;">
             <button class="btn btn-secondary" onclick="alert('News saved to your profile!')"><i class="fa-regular fa-bookmark"></i> Save</button>

@@ -41,9 +41,13 @@ class AuthController extends Controller
         ]);
 
         $roleLower = strtolower($user->role);
+        
+        // Prevent Super Admin from using standard login
         if ($roleLower === 'admin') {
-            return redirect('/admin/dashboard')->with('success', 'Successfully authenticated as Administrator.');
-        } elseif ($roleLower === 'channel') {
+            return redirect('/login')->with('error', 'Admins must use the secure portal.');
+        }
+
+        if ($roleLower === 'channel') {
             return redirect('/channel/dashboard')->with('success', 'Successfully logged in to Channel Dashboard.');
         }
         
@@ -106,5 +110,37 @@ class AuthController extends Controller
     {
         session()->flush();
         return redirect('/')->with('success', 'Safely logged out of archives.');
+    }
+
+    public function showSuperAdminLogin()
+    {
+        return view('auth.admin-login');
+    }
+
+    public function superAdminLogin(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'password' => 'required|string'
+        ]);
+
+        $user = DB::table('USERS')
+            ->where(DB::raw('LOWER("EMAIL")'), strtolower($request->email))
+            ->get()
+            ->first();
+
+        if (!$user || !Hash::check($request->password, $user->password) || strtolower($user->role) !== 'admin') {
+            return back()->withErrors(['email' => 'Invalid admin credentials.'])->withInput();
+        }
+
+        session([
+            'user_id' => $user->id,
+            'user_logged_in' => true,
+            'user_name' => $user->name,
+            'user_email' => $user->email,
+            'user_role' => $user->role
+        ]);
+
+        return redirect('/admin/dashboard')->with('success', 'Successfully authenticated as Super Administrator.');
     }
 }

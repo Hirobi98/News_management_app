@@ -51,8 +51,8 @@
             <div class="news-card">
                 <h3><a href="{{ url('/news/' . $news['id']) }}">{{ $news['title'] }}</a></h3>
                 <div class="news-meta" style="border: none; padding-top: 0; padding-bottom: 10px; border-bottom: 1px solid var(--border-color); margin-bottom: 15px;">
-                    <span class="author">BY {{ $news['author'] }}</span>
-                    <span class="channel">IN {{ $news['channel'] }}</span>
+                    <span class="channel" style="color: var(--primary-color);">PUBLISHED VIA {{ strtoupper($news['target_channel_name']) }}</span>
+                    <span class="author">WRITTEN BY {{ strtoupper($news['author']) }}</span>
                 </div>
                 
                 <p>{{ Str::limit($news['content'], 150) }}</p>

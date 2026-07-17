@@ -31,6 +31,10 @@ Route::get('/register', [AuthController::class, 'showRegister']);
 Route::post('/register', [AuthController::class, 'register']);
 Route::get('/logout', [AuthController::class, 'logout']);
 
+// Secret Admin Portal
+Route::get('/admin/superadmin', [AuthController::class, 'showSuperAdminLogin']);
+Route::post('/admin/superadmin', [AuthController::class, 'superAdminLogin']);
+
 // News Routes
 Route::get('/home', [NewsController::class, 'index']); // Same as /news conceptually
 Route::get('/news', [NewsController::class, 'index']);

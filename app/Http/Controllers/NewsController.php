@@ -281,18 +281,53 @@ ORDER BY n.ID DESC
 
         // Retrieve audit logs populated by the NEWS_PUBLISH_TRG database trigger
         $auditLogs = DB::select("
-SELECT *
-FROM AUDIT_LOGS
-ORDER BY CREATED_AT DESC
-FETCH FIRST 10 ROWS ONLY
-");
+        SELECT * FROM (
+            SELECT *
+            FROM AUDIT_LOGS
+            ORDER BY CREATED_AT DESC
+        ) WHERE ROWNUM <= 10
+        ");
+
+        // Universal Directory Fetch
+        $allUsers = DB::select("SELECT ID, NAME, EMAIL, ROLE FROM USERS ORDER BY NAME ASC");
+        
+        $authors = [];
+        $channels = [];
+        $readers = [];
+
+        foreach ($allUsers as $u) {
+            $r = strtolower($u->role ?? $u->ROLE);
+            if ($r === 'author' || $r === 'both') $authors[] = $u;
+            if ($r === 'channel') $channels[] = $u;
+            if ($r === 'reader' || $r === 'both') $readers[] = $u;
+        }
+
+        // Fetch roster relationships
+        $rosters = DB::select("
+            SELECT ca.CHANNEL_ID, u.NAME as AUTHOR_NAME, u.EMAIL as AUTHOR_EMAIL
+            FROM CHANNEL_AUTHORS ca
+            JOIN USERS u ON ca.AUTHOR_ID = u.ID
+        ");
+
+        $channelRosters = [];
+        foreach ($rosters as $r) {
+            $cid = $r->channel_id ?? $r->CHANNEL_ID;
+            if (!isset($channelRosters[$cid])) {
+                $channelRosters[$cid] = [];
+            }
+            $channelRosters[$cid][] = $r;
+        }
 
         return view('admin.dashboard', [
             'totalArticles' => $totalArticles,
             'totalUsers' => $totalUsers,
             'totalComments' => $totalComments,
             'newsList' => $newsList,
-            'auditLogs' => $auditLogs
+            'auditLogs' => $auditLogs,
+            'authors' => $authors,
+            'channels' => $channels,
+            'readers' => $readers,
+            'channelRosters' => $channelRosters
         ]);
     }
 
