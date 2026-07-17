@@ -42,3 +42,15 @@ Route::post('/news/{id}/comment', [NewsController::class, 'storeComment']);
 // Profile Routes
 Route::get('/profile', [ProfileController::class, 'index']);
 Route::post('/profile/update', [ProfileController::class, 'update']);
+
+// Dashboards and Review Workflows
+Route::get('/author/dashboard', [NewsController::class, 'authorDashboard']);
+Route::get('/news/{id}/edit', [NewsController::class, 'editNews']);
+Route::post('/news/{id}/update', [NewsController::class, 'updateNews']);
+
+Route::get('/channel/dashboard', [NewsController::class, 'channelDashboard']);
+Route::post('/channel/review/{id}', [NewsController::class, 'channelReview']);
+Route::post('/channel/add-author', [NewsController::class, 'addAuthorToChannel']);
+
+Route::get('/admin/dashboard', [NewsController::class, 'adminDashboard']);
+Route::post('/admin/review/{id}', [NewsController::class, 'adminReview']);

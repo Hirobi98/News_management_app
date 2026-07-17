@@ -17,6 +17,16 @@
 
     <div class="divider">OR</div>
 
+    @if ($errors->any())
+        <div class="alert alert-error" style="background: rgba(169, 68, 56, 0.1); border-left: 3px solid var(--secondary-color); color: var(--secondary-color); text-align: left; margin-bottom: 20px;">
+            <ul style="margin: 0; padding-left: 20px; font-family: var(--font-sans); font-size: 0.9rem;">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
     <form action="{{ url('/register') }}" method="POST">
         @csrf
         <div class="form-group" style="text-align: left;">
@@ -35,6 +45,7 @@
                 <option value="reader">Reader Only</option>
                 <option value="author">Author Only</option>
                 <option value="both">Both (Reader & Author)</option>
+                <option value="channel">News Channel Admin</option>
             </select>
         </div>
         

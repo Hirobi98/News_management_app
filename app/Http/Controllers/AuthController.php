@@ -40,6 +40,13 @@ class AuthController extends Controller
             'user_role' => $user->role
         ]);
 
+        $roleLower = strtolower($user->role);
+        if ($roleLower === 'admin') {
+            return redirect('/admin/dashboard')->with('success', 'Successfully authenticated as Administrator.');
+        } elseif ($roleLower === 'channel') {
+            return redirect('/channel/dashboard')->with('success', 'Successfully logged in to Channel Dashboard.');
+        }
+        
         return redirect('/home')->with('success', 'Successfully logged in. Welcome to the News Feed.');
     }
 
@@ -72,6 +79,7 @@ class AuthController extends Controller
             'reader' => 'Reader',
             'author' => 'Author',
             'both' => 'Both',
+            'channel' => 'Channel',
         ];
         $role = $roleMap[$request->role] ?? 'Reader';
 
