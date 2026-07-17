@@ -24,12 +24,17 @@
             </div>
             <div style="flex: 1;">
                 <label>Target News Channel</label>
-                <select name="target_channel" class="form-control" required style="font-family: var(--font-sans); text-transform: uppercase;">
-                    <option value="">Select News Channel</option>
-                    @foreach($channels as $channel)
-                        <option value="{{ $channel->id ?? $channel->ID }}" {{ $news['target_channel'] == ($channel->id ?? $channel->ID) ? 'selected' : '' }}>{{ $channel->name ?? $channel->NAME }}</option>
-                    @endforeach
-                </select>
+                @php
+                    $targetName = 'Unknown Channel';
+                    foreach($channels as $channel) {
+                        if (($channel->id ?? $channel->ID) == $news['target_channel']) {
+                            $targetName = $channel->name ?? $channel->NAME;
+                            break;
+                        }
+                    }
+                @endphp
+                <input type="text" class="form-control" value="{{ $targetName }}" readonly style="font-family: var(--font-sans); text-transform: uppercase; background-color: var(--card-bg); cursor: not-allowed; color: var(--text-secondary);">
+                <input type="hidden" name="target_channel" value="{{ $news['target_channel'] }}">
             </div>
         </div>
         <div class="form-group">
