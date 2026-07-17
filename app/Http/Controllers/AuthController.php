@@ -40,15 +40,7 @@ class AuthController extends Controller
             'user_role' => $user->role
         ]);
 
-        // Role-er upor vitti kore dashboard-e redirect kora hochhe
-        $role = strtolower($user->role);
-        if ($role === 'admin') {
-            return redirect('/admin/dashboard')->with('success', 'Successfully authenticated as Administrator.');
-        } elseif ($role === 'author' || $role === 'both') {
-            return redirect('/author/dashboard')->with('success', 'Successfully logged in to Author Dashboard.');
-        } else {
-            return redirect('/home')->with('success', 'Welcome back to the Gazette News Feed.');
-        }
+        return redirect('/home')->with('success', 'Successfully logged in. Welcome to the News Feed.');
     }
 
     public function showRegister()
@@ -79,7 +71,7 @@ class AuthController extends Controller
         $roleMap = [
             'reader' => 'Reader',
             'author' => 'Author',
-            'both' => 'Author',
+            'both' => 'Both',
         ];
         $role = $roleMap[$request->role] ?? 'Reader';
 
@@ -99,31 +91,7 @@ class AuthController extends Controller
             ]
         );
 
-
-        // Shaddho-shristi (Newly created) user session set korar jonno database checking
-        $user = DB::table('USERS')
-            ->where(DB::raw('LOWER("EMAIL")'), strtolower($request->email))
-            ->get()
-            ->first();
-
-
-        session([
-            'user_id' => $user->id,
-            'user_logged_in' => true,
-            'user_name' => $user->name,
-            'user_email' => $user->email,
-            'user_role' => $user->role
-        ]);
-
-        // Reader ebong Author dashboard er redirect check
-        $roleLower = strtolower($user->role);
-        if ($roleLower === 'admin') {
-            return redirect('/admin/dashboard')->with('success', 'Admin profile generated successfully.');
-        } elseif ($roleLower === 'author' || $roleLower === 'both') {
-            return redirect('/author/dashboard')->with('success', 'Author portfolio created successfully.');
-        } else {
-            return redirect('/home')->with('success', 'Contributor profile created successfully.');
-        }
+        return redirect('/login')->with('success', 'Registration successful. Please login with your new account.');
     }
 
     public function logout()
