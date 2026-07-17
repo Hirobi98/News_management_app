@@ -23,10 +23,17 @@
             <a href="{{ url('/') }}" class="nav-brand">The Gazette</a>
             <div class="nav-links">
                 <a href="{{ url('/home') }}">Front Page</a>
-                <a href="{{ url('/home') }}">World</a>
-                <a href="{{ url('/home') }}">Opinion</a>
-                <a href="{{ url('/home') }}">Culture</a>
+                <a href="{{ url('/category/world') }}">World</a>
+                <a href="{{ url('/category/opinion') }}">Opinion</a>
+                <a href="{{ url('/category/culture') }}">Culture</a>
                 @if(session('user_logged_in'))
+                    @if(strtolower(session('user_role')) === 'author' || strtolower(session('user_role')) === 'both')
+                        <a href="{{ url('/author/dashboard') }}">Inbox</a>
+                    @elseif(strtolower(session('user_role')) === 'channel')
+                        <a href="{{ url('/channel/dashboard') }}">Dashboard</a>
+                    @elseif(strtolower(session('user_role')) === 'admin')
+                        <a href="{{ url('/admin/dashboard') }}">Dashboard</a>
+                    @endif
                     <a href="{{ url('/profile') }}">Account</a>
                     <a href="{{ url('/logout') }}">Logout</a>
                 @else

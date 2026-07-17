@@ -34,6 +34,7 @@ Route::get('/logout', [AuthController::class, 'logout']);
 // News Routes
 Route::get('/home', [NewsController::class, 'index']); // Same as /news conceptually
 Route::get('/news', [NewsController::class, 'index']);
+Route::get('/category/{category}', [NewsController::class, 'category']);
 Route::get('/news/create', [NewsController::class, 'create']);
 Route::post('/news', [NewsController::class, 'store']);
 Route::get('/news/{id}', [NewsController::class, 'show']);

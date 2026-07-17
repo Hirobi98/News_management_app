@@ -57,13 +57,19 @@
                 <div style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 15px;">
                     <form action="{{ url('/channel/review/' . $news['id']) }}" method="POST">
                         @csrf
-                        <div class="form-group">
-                            <label>Feedback (Required if Rejecting)</label>
-                            <textarea name="feedback" class="form-control" rows="2" placeholder="Explain why it was rejected..."></textarea>
+                        <div id="feedback-group-{{ $news['id'] }}" style="display: none; margin-bottom: 15px;">
+                            <div class="form-group">
+                                <label>Feedback Message</label>
+                                <textarea name="feedback" class="form-control" rows="2" placeholder="Explain what needs to be changed..."></textarea>
+                            </div>
+                            <div style="display: flex; gap: 10px;">
+                                <button type="submit" name="action" value="modify" class="btn btn-primary" style="flex: 1;">Send Modification Request</button>
+                            </div>
                         </div>
-                        <div style="display: flex; gap: 10px;">
-                            <button type="submit" name="action" value="approve" class="btn btn-primary" style="flex: 1; background: #2E7D32; border-color: #2E7D32;">Approve & Forward to Admin</button>
-                            <button type="submit" name="action" value="reject" class="btn btn-secondary" style="flex: 1; border-color: var(--secondary-color); color: var(--secondary-color);">Reject & Send Back</button>
+                        <div style="display: flex; gap: 10px;" id="action-buttons-{{ $news['id'] }}">
+                            <button type="submit" name="action" value="approve" class="btn btn-primary" style="flex: 1; background: #2E7D32; border-color: #2E7D32;">Approve</button>
+                            <button type="button" class="btn btn-secondary" style="flex: 1;" onclick="document.getElementById('feedback-group-{{ $news['id'] }}').style.display='block';">Modify</button>
+                            <button type="submit" name="action" value="reject" class="btn btn-secondary" style="flex: 1; border-color: var(--secondary-color); color: var(--secondary-color);" onclick="return confirm('Are you sure you want to permanently reject this article?');">Reject</button>
                         </div>
                     </form>
                 </div>

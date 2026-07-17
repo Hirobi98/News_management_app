@@ -3,22 +3,30 @@
 @section('content')
 <div>
     <!-- Author Post Composer -->
-    @if(session('user_role') === 'author' || session('user_role') === 'both')
+    @if(strtolower(session('user_role')) === 'author' || strtolower(session('user_role')) === 'both')
         <div class="post-composer">
             <h3><i class="fa-solid fa-pen-nib"></i> Draft a New Dispatch</h3>
-            <form action="{{ url('/news') }}" method="POST">
+            <form action="{{ url('/news') }}" method="POST" enctype="multipart/form-data">
                 @csrf
-                <div class="form-group">
-                    <input type="text" name="title" class="form-control" placeholder="Headline..." required style="font-weight: 700; font-size: 1.2rem; margin-bottom: 10px;">
+                <div class="form-group" style="margin-bottom: 10px;">
+                    <input type="text" name="title" class="form-control" placeholder="Headline..." required style="font-family: var(--font-serif); font-size: 1.5rem; font-weight: 700; border: none; border-bottom: 2px solid var(--primary-color); border-radius: 0; padding-left: 0; background: transparent;">
                 </div>
+                
                 <div class="form-group" style="display: flex; gap: 10px; margin-bottom: 10px;">
                     <select name="category" class="form-control" required style="width: auto; font-family: var(--font-sans); text-transform: uppercase;">
                         <option value="">Select Category</option>
-                        <option value="World">World</option>
-                        <option value="Opinion">Opinion</option>
-                        <option value="Culture">Culture</option>
-                        <option value="Sports">Sports</option>
+                        <option value="World" {{ (isset($currentCategory) && strtolower($currentCategory) === 'world') ? 'selected' : '' }}>World</option>
+                        <option value="Opinion" {{ (isset($currentCategory) && strtolower($currentCategory) === 'opinion') ? 'selected' : '' }}>Opinion</option>
+                        <option value="Culture" {{ (isset($currentCategory) && strtolower($currentCategory) === 'culture') ? 'selected' : '' }}>Culture</option>
+                        <option value="Sports" {{ (isset($currentCategory) && strtolower($currentCategory) === 'sports') ? 'selected' : '' }}>Sports</option>
                     </select>
+                    <select name="target_channel" class="form-control" required style="width: auto; font-family: var(--font-sans); text-transform: uppercase;">
+                        <option value="">Select News Channel</option>
+                        @foreach($channels as $channel)
+                            <option value="{{ $channel->id ?? $channel->ID }}">{{ $channel->name ?? $channel->NAME }} ({{ $channel->email ?? $channel->EMAIL }})</option>
+                        @endforeach
+                    </select>
+                    <input type="file" name="image" class="form-control" accept="image/*" style="width: auto; font-family: var(--font-sans);">
                 </div>
                 <div class="form-group">
                     <textarea name="content" class="form-control" rows="3" placeholder="What is the story?" required style="font-style: italic;"></textarea>
@@ -29,7 +37,7 @@
     @endif
 
     <div class="flex justify-between items-center" style="margin-bottom: 20px; border-bottom: 2px solid var(--primary-color); padding-bottom: 10px;">
-        <h1 style="font-family: var(--font-serif); font-size: 2rem; margin: 0; text-transform: uppercase;">Latest Dispatches</h1>
+        <h1 style="font-family: var(--font-serif); font-size: 2rem; margin: 0; text-transform: uppercase;">{{ isset($currentCategory) ? $currentCategory . ' Section' : 'Latest Dispatches' }}</h1>
     </div>
 
     @if(session('error'))

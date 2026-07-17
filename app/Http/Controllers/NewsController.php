@@ -65,13 +65,43 @@ class NewsController extends Controller
 
         $userId = session('user_id');
         $channels = DB::select("
-            SELECT u.ID, u.NAME 
+            SELECT u.ID, u.NAME, u.EMAIL
             FROM USERS u 
             JOIN CHANNEL_AUTHORS ca ON u.ID = ca.CHANNEL_ID 
             WHERE ca.AUTHOR_ID = ?
         ", [$userId]);
 
         return view('news.index', ['newsList' => $newsList, 'channels' => $channels]);
+    }
+
+    public function category($category)
+    {
+        if (!session('user_logged_in')) {
+            return redirect('/login')->with('error', 'Please login to view news.');
+        }
+
+        $newsRows = DB::select("
+            SELECT n.*, u.NAME as TARGET_CHANNEL_NAME
+            FROM NEWS_ITEMS n
+            LEFT JOIN USERS u ON n.TARGET_CHANNEL = u.ID
+            WHERE LOWER(n.STATUS)='published' AND LOWER(n.CATEGORY)=?
+            ORDER BY n.ID DESC
+        ", [strtolower($category)]);
+
+        $newsList = [];
+        foreach ($newsRows as $row) {
+            $newsList[] = $this->mapNewsItem($row);
+        }
+
+        $userId = session('user_id');
+        $channels = DB::select("
+            SELECT u.ID, u.NAME, u.EMAIL
+            FROM USERS u 
+            JOIN CHANNEL_AUTHORS ca ON u.ID = ca.CHANNEL_ID 
+            WHERE ca.AUTHOR_ID = ?
+        ", [$userId]);
+
+        return view('news.index', ['newsList' => $newsList, 'channels' => $channels, 'currentCategory' => ucfirst($category)]);
     }
 
     public function show($id)
@@ -134,8 +164,16 @@ class NewsController extends Controller
             'title' => 'required|string|max:255',
             'content' => 'required|string',
             'category' => 'required|string|max:50',
-            'target_channel' => 'required|integer'
+            'target_channel' => 'required|integer',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
         ]);
+
+        $imagePath = null;
+        if ($request->hasFile('image')) {
+            $imageName = time() . '.' . $request->image->extension();
+            $request->image->move(public_path('uploads'), $imageName);
+            $imagePath = 'uploads/' . $imageName;
+        }
 
         DB::statement(
             "
@@ -168,7 +206,7 @@ SYSDATE,
                 $request->input('content'),
                 $request->input('category'),
                 'Pending_Channel',
-                null,
+                $imagePath,
                 $request->input('target_channel')
             ]
         );
@@ -439,13 +477,21 @@ ORDER BY ID DESC
                 DB::statement("INSERT INTO INBOX_MESSAGES (USER_ID, MESSAGE) VALUES (?, ?)", [$userId, $msg]);
             }
             return redirect()->back()->with('success', 'Article forwarded to Super Admin for final review.');
-        } else {
-            DB::statement("UPDATE NEWS_ITEMS SET STATUS = 'Rejected_Channel', ADMIN_FEEDBACK = ? WHERE ID = ?", [$feedback, $id]);
+        } elseif ($action === 'modify') {
+            DB::statement("UPDATE NEWS_ITEMS SET STATUS = 'Modification_Required', ADMIN_FEEDBACK = ? WHERE ID = ?", [$feedback, $id]);
             if ($userId) {
-                $msg = "Your dispatch '{$title}' was rejected by the channel. Feedback: {$feedback}";
+                $msg = "Modification Request for '{$title}': {$feedback}";
                 DB::statement("INSERT INTO INBOX_MESSAGES (USER_ID, MESSAGE) VALUES (?, ?)", [$userId, $msg]);
             }
-            return redirect()->back()->with('error', 'Article rejected and sent back to author.');
+            return redirect()->back()->with('success', 'Modification request sent to the author.');
+        } else {
+            // Permanent Reject
+            DB::statement("UPDATE NEWS_ITEMS SET STATUS = 'Rejected_Permanent', ADMIN_FEEDBACK = 'Permanently Rejected' WHERE ID = ?", [$id]);
+            if ($userId) {
+                $msg = "Your dispatch '{$title}' was permanently rejected by the channel.";
+                DB::statement("INSERT INTO INBOX_MESSAGES (USER_ID, MESSAGE) VALUES (?, ?)", [$userId, $msg]);
+            }
+            return redirect()->back()->with('error', 'Article permanently rejected.');
         }
     }
 
