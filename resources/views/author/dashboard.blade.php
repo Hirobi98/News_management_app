@@ -58,6 +58,36 @@
         @endif
     </div>
 
+    <h2 style="font-family: var(--font-serif); font-size: 1.5rem; text-transform: uppercase; margin-bottom: 20px;">My Assigned Tasks</h2>
+    <div style="background: var(--card-bg); padding: 20px; border: 1px solid var(--border-color); margin-bottom: 40px; font-family: var(--font-sans); font-size: 0.9rem;">
+        <ul style="list-style: none; padding: 0;">
+        @forelse($myTasks ?? [] as $task)
+            <li style="padding: 15px 0; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <strong>Topic:</strong> {{ $task->topic ?? $task->TOPIC }}<br>
+                    <strong>Assigned By:</strong> {{ $task->channel_name ?? $task->CHANNEL_NAME }}<br>
+                    <strong>Deadline:</strong> <span style="color: var(--secondary-color);">{{ date('F j, Y', strtotime($task->deadline ?? $task->DEADLINE)) }}</span>
+                    @if($task->resources ?? $task->RESOURCES)
+                        <div style="margin-top: 5px; font-style: italic; color: #666;"><strong>Resources:</strong> {!! nl2br(htmlspecialchars($task->resources ?? $task->RESOURCES)) !!}</div>
+                    @endif
+                </div>
+                <div>
+                    @if(($task->status ?? $task->STATUS) === 'Submitted')
+                        <span style="background: #2E7D32; color: white; padding: 5px 10px; border-radius: 4px; font-size: 0.8rem; font-weight: bold;">✅ Submitted</span>
+                    @else
+                        <form action="{{ url('/author/task/complete/' . ($task->id ?? $task->ID)) }}" method="POST" style="margin: 0;">
+                            @csrf
+                            <button type="submit" class="btn btn-primary" style="padding: 5px 10px; font-size: 0.8rem;" onclick="return confirm('Mark this task as completed?');">Mark Completed</button>
+                        </form>
+                    @endif
+                </div>
+            </li>
+        @empty
+            <li style="color: #888; font-style: italic;">You have no assigned tasks.</li>
+        @endforelse
+        </ul>
+    </div>
+
     <h2 style="font-family: var(--font-serif); font-size: 1.5rem; text-transform: uppercase; margin-bottom: 20px;">Your Dispatches</h2>
 
     <div class="news-grid">

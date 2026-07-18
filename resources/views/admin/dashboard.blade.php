@@ -108,13 +108,53 @@
     <h2 style="font-family: var(--font-serif); font-size: 2rem; text-transform: uppercase; margin-bottom: 20px; border-bottom: 2px solid var(--primary-color); padding-bottom: 10px;">Universal Directory</h2>
 
     <div style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
-        <button class="btn btn-primary" onclick="showTab('tab-channels')" id="btn-channels">Show News Channels</button>
+        <button class="btn btn-primary" onclick="showTab('tab-tasks')" id="btn-tasks">Global Task Overview</button>
+        <button class="btn btn-secondary" onclick="showTab('tab-channels')" id="btn-channels">Show News Channels</button>
         <button class="btn btn-secondary" onclick="showTab('tab-authors')" id="btn-authors">Show Authors</button>
         <button class="btn btn-secondary" onclick="showTab('tab-readers')" id="btn-readers">Show Readers</button>
     </div>
 
+    <!-- Global Tasks Tab -->
+    <div id="tab-tasks" class="directory-tab" style="display: block;">
+        <h3 style="font-family: var(--font-serif);">All Assigned Tasks Platform-Wide</h3>
+        <div style="background: var(--card-bg); padding: 20px; border: 1px solid var(--border-color); font-family: var(--font-sans); font-size: 0.9rem;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="border-bottom: 2px solid var(--border-color); text-align: left;">
+                        <th style="padding: 10px;">Assigned By (Channel)</th>
+                        <th style="padding: 10px;">Assigned To (Author)</th>
+                        <th style="padding: 10px;">Topic</th>
+                        <th style="padding: 10px;">Deadline</th>
+                        <th style="padding: 10px;">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @forelse($globalTasks ?? [] as $task)
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 10px;">{{ $task->channel_name ?? $task->CHANNEL_NAME }}</td>
+                        <td style="padding: 10px;">{{ $task->author_name ?? $task->AUTHOR_NAME }}</td>
+                        <td style="padding: 10px;">{{ $task->topic ?? $task->TOPIC }}</td>
+                        <td style="padding: 10px;">{{ date('M j, Y', strtotime($task->deadline ?? $task->DEADLINE)) }}</td>
+                        <td style="padding: 10px;">
+                            @if(($task->status ?? $task->STATUS) === 'Submitted')
+                                <span style="color: #2E7D32; font-weight: bold;">✅ Submitted</span>
+                            @else
+                                <span style="color: #A94438; font-weight: bold;">⏳ Pending</span>
+                            @endif
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="5" style="padding: 10px; text-align: center; color: #888; font-style: italic;">No tasks have been assigned platform-wide yet.</td>
+                    </tr>
+                @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     <!-- Channels Tab -->
-    <div id="tab-channels" class="directory-tab" style="display: block;">
+    <div id="tab-channels" class="directory-tab" style="display: none;">
         <h3 style="font-family: var(--font-serif);">News Channels & Rosters ({{ count($channels) }})</h3>
         <div style="background: var(--card-bg); padding: 20px; border: 1px solid var(--border-color);">
             @foreach($channels as $channel)
@@ -199,7 +239,9 @@ function showTab(tabId) {
     
     document.getElementById(tabId).style.display = 'block';
     
-    if(tabId === 'tab-channels') {
+    if(tabId === 'tab-tasks') {
+        document.getElementById('btn-tasks').classList.replace('btn-secondary', 'btn-primary');
+    } else if(tabId === 'tab-channels') {
         document.getElementById('btn-channels').classList.replace('btn-secondary', 'btn-primary');
     } else if(tabId === 'tab-authors') {
         document.getElementById('btn-authors').classList.replace('btn-secondary', 'btn-primary');

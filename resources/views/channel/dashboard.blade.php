@@ -72,6 +72,34 @@
     </div>
     @endif
 
+    <!-- ASSIGNED TASKS OVERVIEW -->
+    <h2 style="font-family: var(--font-serif); font-size: 1.5rem; text-transform: uppercase; margin-bottom: 20px;">Assigned Tasks Overview</h2>
+    <div style="background: var(--card-bg); padding: 20px; border: 1px solid var(--border-color); margin-bottom: 40px; font-family: var(--font-sans); font-size: 0.9rem;">
+        <ul style="list-style: none; padding: 0;">
+        @forelse($assignedTasks ?? [] as $task)
+            <li style="padding: 15px 0; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <strong>Topic:</strong> {{ $task->topic ?? $task->TOPIC }}<br>
+                    <strong>Assigned To:</strong> {{ $task->author_name ?? $task->AUTHOR_NAME }}<br>
+                    <strong>Deadline:</strong> <span style="color: var(--secondary-color);">{{ date('F j, Y', strtotime($task->deadline ?? $task->DEADLINE)) }}</span>
+                    @if($task->resources ?? $task->RESOURCES)
+                        <div style="margin-top: 5px; font-style: italic; color: #666;"><strong>Resources:</strong> {!! nl2br(htmlspecialchars($task->resources ?? $task->RESOURCES)) !!}</div>
+                    @endif
+                </div>
+                <div>
+                    @if(($task->status ?? $task->STATUS) === 'Submitted')
+                        <span style="background: #2E7D32; color: white; padding: 5px 10px; border-radius: 4px; font-size: 0.8rem; font-weight: bold;">✅ Submitted</span>
+                    @else
+                        <span style="background: #A94438; color: white; padding: 5px 10px; border-radius: 4px; font-size: 0.8rem; font-weight: bold;">⏳ Pending</span>
+                    @endif
+                </div>
+            </li>
+        @empty
+            <li style="color: #888; font-style: italic;">You haven't assigned any tasks yet.</li>
+        @endforelse
+        </ul>
+    </div>
+
     <h2 style="font-family: var(--font-serif); font-size: 1.5rem; text-transform: uppercase; margin-bottom: 20px;">Pending Dispatches for Review</h2>
 
     @if(session('error'))

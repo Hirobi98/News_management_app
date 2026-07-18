@@ -60,6 +60,7 @@ Route::post('/channel/assign-task', [NewsController::class, 'assignTask']);
 
 Route::get('/author/dashboard', [NewsController::class, 'authorDashboard']);
 Route::post('/author/inbox/read', [NewsController::class, 'markInboxRead']);
+Route::post('/author/task/complete/{id}', [NewsController::class, 'markTaskCompleted']);
 
 Route::get('/admin/dashboard', [NewsController::class, 'adminDashboard']);
 Route::post('/admin/review/{id}', [NewsController::class, 'adminReview']);

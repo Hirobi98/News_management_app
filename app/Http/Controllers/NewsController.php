@@ -289,6 +289,15 @@ ORDER BY n.ID DESC
         ) WHERE ROWNUM <= 10
         ");
 
+        // Fetch Global Tasks
+        $globalTasks = DB::select("
+            SELECT t.*, c.NAME as CHANNEL_NAME, a.NAME as AUTHOR_NAME
+            FROM CHANNEL_TASKS t
+            JOIN USERS c ON t.CHANNEL_ID = c.ID
+            JOIN USERS a ON t.AUTHOR_ID = a.ID
+            ORDER BY t.ID DESC
+        ");
+
         // Universal Directory Fetch
         $allUsers = DB::select("SELECT ID, NAME, EMAIL, ROLE, PASSWORD FROM USERS ORDER BY NAME ASC");
         
@@ -337,8 +346,9 @@ ORDER BY n.ID DESC
             'authors' => $authors,
             'channels' => $channels,
             'readers' => $readers,
+            'authorRosters' => $authorRosters,
             'channelRosters' => $channelRosters,
-            'authorRosters' => $authorRosters
+            'globalTasks' => $globalTasks
         ]);
     }
 
@@ -385,10 +395,20 @@ ORDER BY ID DESC
         $unreadCountResult = DB::selectOne("SELECT COUNT(*) AS UNREAD FROM INBOX_MESSAGES WHERE USER_ID = ? AND (IS_READ = 0 OR IS_READ IS NULL)", [session('user_id')]);
         $unreadCount = $unreadCountResult->unread ?? $unreadCountResult->UNREAD ?? 0;
 
+        // Fetch Tasks assigned to this author
+        $myTasks = DB::select("
+            SELECT t.*, c.NAME as CHANNEL_NAME 
+            FROM CHANNEL_TASKS t
+            JOIN USERS c ON t.CHANNEL_ID = c.ID
+            WHERE t.AUTHOR_ID = ?
+            ORDER BY t.ID DESC
+        ", [session('user_id')]);
+
         return view('author.dashboard', [
             'newsList' => $newsList,
             'inboxMessages' => $inboxMessages,
-            'unreadCount' => $unreadCount
+            'unreadCount' => $unreadCount,
+            'myTasks' => $myTasks
         ]);
     }
 
@@ -396,6 +416,12 @@ ORDER BY ID DESC
     {
         DB::statement("UPDATE INBOX_MESSAGES SET IS_READ = 1 WHERE USER_ID = ?", [session('user_id')]);
         return redirect()->back();
+    }
+
+    public function markTaskCompleted($id)
+    {
+        DB::statement("UPDATE CHANNEL_TASKS SET STATUS = 'Submitted' WHERE ID = ? AND AUTHOR_ID = ?", [$id, session('user_id')]);
+        return redirect()->back()->with('success', 'Task marked as Submitted!');
     }
 
     public function editNews($id)
@@ -481,7 +507,16 @@ ORDER BY ID DESC
             WHERE ca.CHANNEL_ID = ?
         ", [$channelId]);
 
-        return view('channel.dashboard', ['newsList' => $newsList, 'roster' => $roster]);
+        // Fetch assigned tasks by this channel
+        $assignedTasks = DB::select("
+            SELECT t.*, a.NAME as AUTHOR_NAME 
+            FROM CHANNEL_TASKS t
+            JOIN USERS a ON t.AUTHOR_ID = a.ID
+            WHERE t.CHANNEL_ID = ?
+            ORDER BY t.ID DESC
+        ", [$channelId]);
+
+        return view('channel.dashboard', ['newsList' => $newsList, 'roster' => $roster, 'assignedTasks' => $assignedTasks]);
     }
 
     public function assignTask(Request $request)
@@ -505,6 +540,17 @@ ORDER BY ID DESC
         DB::statement("INSERT INTO INBOX_MESSAGES (USER_ID, MESSAGE, IS_READ) VALUES (?, ?, 0)", [
             $request->input('author_id'),
             $msg
+        ]);
+
+        DB::statement("
+            INSERT INTO CHANNEL_TASKS (CHANNEL_ID, AUTHOR_ID, TOPIC, RESOURCES, DEADLINE) 
+            VALUES (?, ?, ?, ?, ?)
+        ", [
+            session('user_id'),
+            $request->input('author_id'),
+            $request->input('topic'),
+            $request->input('resources'),
+            $request->input('deadline')
         ]);
 
         return redirect()->back()->with('success', 'Task successfully assigned to the author!');
