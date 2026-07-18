@@ -6,8 +6,22 @@
         Author Dashboard
     </h1>
 
-    <h2 style="font-family: var(--font-serif); font-size: 1.5rem; text-transform: uppercase; margin-bottom: 20px;">Inbox Notifications</h2>
-    <div style="background: var(--card-bg); padding: 20px; border: 1px solid var(--border-color); margin-bottom: 40px; max-height: 300px; overflow-y: auto;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="font-family: var(--font-serif); font-size: 1.5rem; text-transform: uppercase; margin: 0;">
+            Inbox Notifications 
+            @if(isset($unreadCount) && $unreadCount > 0)
+                <span style="background: red; color: white; border-radius: 50%; padding: 2px 8px; font-size: 0.8rem; vertical-align: super; font-family: sans-serif; font-weight: bold;">{{ $unreadCount }}</span>
+            @endif
+        </h2>
+        @if(isset($unreadCount) && $unreadCount > 0)
+        <form action="{{ url('/author/inbox/read') }}" method="POST" style="margin: 0;">
+            @csrf
+            <button type="submit" class="btn btn-secondary" style="padding: 5px 15px; font-size: 0.8rem;">Mark all as read</button>
+        </form>
+        @endif
+    </div>
+
+    <div style="background: var(--card-bg); padding: 20px; border: 1px solid var(--border-color); margin-bottom: 40px; max-height: 400px; overflow-y: auto;">
         @php $hasMessages = false; @endphp
         
         {{-- Display actionable modification requests directly in the inbox --}}
@@ -29,9 +43,12 @@
 
         {{-- Display standard text messages --}}
         @foreach($inboxMessages ?? [] as $msg)
-            @php $hasMessages = true; @endphp
-            <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 10px;">
-                <p style="margin: 0; font-family: var(--font-sans);"><i class="fa-solid fa-envelope" style="color: var(--secondary-color); margin-right: 10px;"></i> {{ $msg->message ?? $msg->MESSAGE }}</p>
+            @php 
+                $hasMessages = true; 
+                $isUnread = ($msg->is_read ?? $msg->IS_READ) == 0;
+            @endphp
+            <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 10px; {{ $isUnread ? 'background: rgba(46, 125, 50, 0.05); border-left: 4px solid var(--primary-color); padding-left: 10px;' : '' }}">
+                <p style="margin: 0; font-family: var(--font-sans);"><i class="fa-solid fa-envelope" style="color: var(--secondary-color); margin-right: 10px;"></i> {!! $msg->message ?? $msg->MESSAGE !!}</p>
                 <span style="font-size: 0.8rem; color: var(--text-secondary); font-style: italic;">{{ date('F j, Y, g:i a', strtotime($msg->created_at ?? $msg->CREATED_AT)) }}</span>
             </div>
         @endforeach

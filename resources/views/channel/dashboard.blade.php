@@ -35,6 +35,43 @@
         </div>
     </div>
 
+    <!-- TASK ASSIGNMENT -->
+    @if(isset($roster) && count($roster) > 0)
+    <div style="background: var(--card-bg); padding: 20px; border: 1px solid var(--border-color); margin-bottom: 40px; border-left: 4px solid var(--primary-color);">
+        <h3 style="font-family: var(--font-serif); margin-top: 0; text-transform: uppercase; font-size: 1.2rem;">Assign Task to Author</h3>
+        <form action="{{ url('/channel/assign-task') }}" method="POST">
+            @csrf
+            <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+                <div class="form-group" style="flex: 1; margin: 0;">
+                    <label>Select Author</label>
+                    <select name="author_id" class="form-control" required>
+                        <option value="">-- Choose Author --</option>
+                        @foreach($roster as $author)
+                            <option value="{{ $author->id ?? $author->ID }}">{{ $author->name ?? $author->NAME }} ({{ $author->email ?? $author->EMAIL }})</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="form-group" style="flex: 1; margin: 0;">
+                    <label>Deadline</label>
+                    <input type="date" name="deadline" class="form-control" required>
+                </div>
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label>Topic / Instructions</label>
+                <input type="text" name="topic" class="form-control" placeholder="What should they write about?" required>
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label>Resources & Links (Optional)</label>
+                <textarea name="resources" class="form-control" rows="2" placeholder="Provide any links, sources, or reference material..."></textarea>
+            </div>
+            
+            <button type="submit" class="btn btn-primary">Assign Task</button>
+        </form>
+    </div>
+    @endif
+
     <h2 style="font-family: var(--font-serif); font-size: 1.5rem; text-transform: uppercase; margin-bottom: 20px;">Pending Dispatches for Review</h2>
 
     @if(session('error'))

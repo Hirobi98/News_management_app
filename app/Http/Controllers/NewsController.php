@@ -381,10 +381,21 @@ ORDER BY ID DESC
         // Fetch inbox messages
         $inboxMessages = DB::select("SELECT * FROM INBOX_MESSAGES WHERE USER_ID = ? ORDER BY ID DESC", [session('user_id')]);
 
+        // Fetch unread count
+        $unreadCountResult = DB::selectOne("SELECT COUNT(*) AS UNREAD FROM INBOX_MESSAGES WHERE USER_ID = ? AND (IS_READ = 0 OR IS_READ IS NULL)", [session('user_id')]);
+        $unreadCount = $unreadCountResult->unread ?? $unreadCountResult->UNREAD ?? 0;
+
         return view('author.dashboard', [
             'newsList' => $newsList,
-            'inboxMessages' => $inboxMessages
+            'inboxMessages' => $inboxMessages,
+            'unreadCount' => $unreadCount
         ]);
+    }
+
+    public function markInboxRead()
+    {
+        DB::statement("UPDATE INBOX_MESSAGES SET IS_READ = 1 WHERE USER_ID = ?", [session('user_id')]);
+        return redirect()->back();
     }
 
     public function editNews($id)
@@ -464,13 +475,39 @@ ORDER BY ID DESC
 
         // Fetch roster
         $roster = DB::select("
-            SELECT u.NAME, u.EMAIL 
+            SELECT u.ID, u.NAME, u.EMAIL 
             FROM USERS u 
             JOIN CHANNEL_AUTHORS ca ON u.ID = ca.AUTHOR_ID 
             WHERE ca.CHANNEL_ID = ?
         ", [$channelId]);
 
         return view('channel.dashboard', ['newsList' => $newsList, 'roster' => $roster]);
+    }
+
+    public function assignTask(Request $request)
+    {
+        $request->validate([
+            'author_id' => 'required|integer',
+            'topic' => 'required|string|max:255',
+            'resources' => 'nullable|string',
+            'deadline' => 'required|date'
+        ]);
+
+        $channelName = session('user_name');
+        
+        $msg = "<strong>📢 TASK ASSIGNMENT from {$channelName}</strong><br>";
+        $msg .= "<strong>Topic:</strong> " . htmlspecialchars($request->input('topic')) . "<br>";
+        $msg .= "<strong>Deadline:</strong> " . htmlspecialchars($request->input('deadline')) . "<br>";
+        if ($request->filled('resources')) {
+            $msg .= "<strong>Resources:</strong> " . nl2br(htmlspecialchars($request->input('resources')));
+        }
+
+        DB::statement("INSERT INTO INBOX_MESSAGES (USER_ID, MESSAGE, IS_READ) VALUES (?, ?, 0)", [
+            $request->input('author_id'),
+            $msg
+        ]);
+
+        return redirect()->back()->with('success', 'Task successfully assigned to the author!');
     }
 
     public function addAuthorToChannel(Request $request)
