@@ -258,7 +258,8 @@ SYSDATE
     // Admin Dashboard Logic
     public function adminDashboard()
     {
-        $totalArticles = DB::selectOne("SELECT COUNT(*) TOTAL FROM NEWS_ITEMS")->total;
+        $totalArticlesResult = DB::selectOne("SELECT GET_TOTAL_PUBLISHED_NEWS() TOTAL FROM DUAL");
+        $totalArticles = $totalArticlesResult->total ?? $totalArticlesResult->TOTAL ?? 0;
 
         $totalUsers = DB::selectOne("SELECT COUNT(*) TOTAL FROM USERS")->total;
 
@@ -549,8 +550,12 @@ ORDER BY ID DESC
             DB::statement("UPDATE NEWS_ITEMS SET STATUS = 'Published', ADMIN_FEEDBACK = NULL WHERE ID = ?", [$id]);
             return redirect()->back()->with('success', 'Article published successfully to the news feed.');
         } else {
-            DB::statement("UPDATE NEWS_ITEMS SET STATUS = 'Rejected_Admin', ADMIN_FEEDBACK = ? WHERE ID = ?", [$feedback, $id]);
-            return redirect()->back()->with('error', 'Article rejected and sent back to author.');
+            // Use the PL/SQL Stored Procedure to reject the news
+            DB::statement("BEGIN REJECT_NEWS_PROC(:id, :feedback); END;", [
+                'id' => $id,
+                'feedback' => $feedback
+            ]);
+            return redirect()->back()->with('error', 'Article rejected via PL/SQL Stored Procedure.');
         }
     }
 

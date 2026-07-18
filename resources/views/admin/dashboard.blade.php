@@ -88,6 +88,22 @@
         @endforelse
     </div>
 
+    <!-- AUDIT LOGS -->
+    <h2 style="font-family: var(--font-serif); font-size: 1.5rem; text-transform: uppercase; margin-bottom: 20px;">Database Audit Logs</h2>
+    <div style="background: var(--card-bg); padding: 20px; border: 1px solid var(--border-color); margin-bottom: 40px; font-family: var(--font-sans); font-size: 0.9rem;">
+        <ul style="list-style: none; padding: 0;">
+        @forelse($auditLogs as $log)
+            <li style="padding: 10px 0; border-bottom: 1px solid #eee;">
+                <strong style="color: var(--primary-color);">[{{ $log->action ?? $log->ACTION }}]</strong> 
+                <span style="color: #555; font-size: 0.8rem; margin-left: 10px;">{{ $log->created_at ?? $log->CREATED_AT }}</span><br>
+                {{ $log->details ?? $log->DETAILS }}
+            </li>
+        @empty
+            <li style="color: #888; font-style: italic;">No audit logs generated yet. Perform an action to see logs.</li>
+        @endforelse
+        </ul>
+    </div>
+
     <!-- UNIVERSAL DIRECTORY -->
     <h2 style="font-family: var(--font-serif); font-size: 2rem; text-transform: uppercase; margin-bottom: 20px; border-bottom: 2px solid var(--primary-color); padding-bottom: 10px;">Universal Directory</h2>
 
