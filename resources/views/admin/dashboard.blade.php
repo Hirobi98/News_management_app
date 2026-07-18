@@ -91,47 +91,105 @@
     <!-- UNIVERSAL DIRECTORY -->
     <h2 style="font-family: var(--font-serif); font-size: 2rem; text-transform: uppercase; margin-bottom: 20px; border-bottom: 2px solid var(--primary-color); padding-bottom: 10px;">Universal Directory</h2>
 
-    <h3 style="font-family: var(--font-serif); margin-top: 30px;">News Channels & Rosters</h3>
-    <div style="background: var(--card-bg); padding: 20px; border: 1px solid var(--border-color);">
-        @foreach($channels as $channel)
-            <div style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px dashed var(--border-color);">
-                <strong>{{ $channel->name ?? $channel->NAME }}</strong> ({{ $channel->email ?? $channel->EMAIL }})
-                <div style="margin-top: 10px; padding-left: 20px;">
-                    <em>Hired Authors:</em>
-                    @php $hasAuthors = false; @endphp
-                    <ul style="margin-top: 5px; font-family: var(--font-sans); font-size: 0.9rem;">
-                    @if(isset($channelRosters[$channel->id ?? $channel->ID]))
-                        @foreach($channelRosters[$channel->id ?? $channel->ID] as $ra)
-                            @php $hasAuthors = true; @endphp
-                            <li>{{ $ra->author_name ?? $ra->AUTHOR_NAME }} ({{ $ra->author_email ?? $ra->AUTHOR_EMAIL }})</li>
-                        @endforeach
-                    @endif
-                    @if(!$hasAuthors)
-                        <li style="color: var(--text-secondary); font-style: italic;">No authors hired yet.</li>
-                    @endif
-                    </ul>
+    <div style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+        <button class="btn btn-primary" onclick="showTab('tab-channels')" id="btn-channels">Show News Channels</button>
+        <button class="btn btn-secondary" onclick="showTab('tab-authors')" id="btn-authors">Show Authors</button>
+        <button class="btn btn-secondary" onclick="showTab('tab-readers')" id="btn-readers">Show Readers</button>
+    </div>
+
+    <!-- Channels Tab -->
+    <div id="tab-channels" class="directory-tab" style="display: block;">
+        <h3 style="font-family: var(--font-serif);">News Channels & Rosters ({{ count($channels) }})</h3>
+        <div style="background: var(--card-bg); padding: 20px; border: 1px solid var(--border-color);">
+            @foreach($channels as $channel)
+                <div style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px dashed var(--border-color);">
+                    <strong>{{ $channel->name ?? $channel->NAME }}</strong> ({{ $channel->email ?? $channel->EMAIL }})<br>
+                    @php $cPwd = isset($channel->PASSWORD) ? $channel->PASSWORD : (isset($channel->password) ? $channel->password : 'N/A'); @endphp
+                    <span style="font-family: monospace; font-size: 0.8rem; color: #666; background: #eee; padding: 2px 5px; border-radius: 3px;">Password Hash: {{ Str::limit((string)$cPwd, 40) }}</span>
+                    <div style="margin-top: 10px; padding-left: 20px;">
+                        <em>Hired Authors:</em>
+                        @php $hasAuthors = false; @endphp
+                        <ul style="margin-top: 5px; font-family: var(--font-sans); font-size: 0.9rem;">
+                        @if(isset($channelRosters[$channel->id ?? $channel->ID]))
+                            @foreach($channelRosters[$channel->id ?? $channel->ID] as $ra)
+                                @php $hasAuthors = true; @endphp
+                                <li>{{ $ra->author_name ?? $ra->AUTHOR_NAME }} ({{ $ra->author_email ?? $ra->AUTHOR_EMAIL }})</li>
+                            @endforeach
+                        @endif
+                        @if(!$hasAuthors)
+                            <li style="color: var(--text-secondary); font-style: italic;">No authors hired yet.</li>
+                        @endif
+                        </ul>
+                    </div>
                 </div>
-            </div>
-        @endforeach
+            @endforeach
+        </div>
     </div>
 
-    <h3 style="font-family: var(--font-serif); margin-top: 30px;">All Authors</h3>
-    <div style="background: var(--card-bg); padding: 20px; border: 1px solid var(--border-color); font-family: var(--font-sans); font-size: 0.9rem;">
-        <ul style="list-style: none; padding: 0;">
-        @foreach($authors as $author)
-            <li style="padding: 5px 0; border-bottom: 1px solid #eee;"><strong>{{ $author->name ?? $author->NAME }}</strong> - {{ $author->email ?? $author->EMAIL }}</li>
-        @endforeach
-        </ul>
+    <!-- Authors Tab -->
+    <div id="tab-authors" class="directory-tab" style="display: none;">
+        <h3 style="font-family: var(--font-serif);">All Authors ({{ count($authors) }})</h3>
+        <div style="background: var(--card-bg); padding: 20px; border: 1px solid var(--border-color); font-family: var(--font-sans); font-size: 0.9rem;">
+            @foreach($authors as $author)
+                <div style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px dashed var(--border-color);">
+                    <strong>{{ $author->name ?? $author->NAME }}</strong> ({{ $author->email ?? $author->EMAIL }})<br>
+                    @php $aPwd = isset($author->PASSWORD) ? $author->PASSWORD : (isset($author->password) ? $author->password : 'N/A'); @endphp
+                    <span style="font-family: monospace; font-size: 0.8rem; color: #666; background: #eee; padding: 2px 5px; border-radius: 3px;">Password Hash: {{ Str::limit((string)$aPwd, 40) }}</span>
+                    <div style="margin-top: 10px; padding-left: 20px;">
+                        <em>Connected News Channels:</em>
+                        @php $hasChannels = false; @endphp
+                        <ul style="margin-top: 5px; font-family: var(--font-sans); font-size: 0.9rem;">
+                        @if(isset($authorRosters[$author->id ?? $author->ID]))
+                            @foreach($authorRosters[$author->id ?? $author->ID] as $rc)
+                                @php $hasChannels = true; @endphp
+                                <li>{{ $rc->channel_name ?? $rc->CHANNEL_NAME }}</li>
+                            @endforeach
+                        @endif
+                        @if(!$hasChannels)
+                            <li style="color: var(--text-secondary); font-style: italic;">Not connected to any news channel yet.</li>
+                        @endif
+                        </ul>
+                    </div>
+                </div>
+            @endforeach
+        </div>
     </div>
 
-    <h3 style="font-family: var(--font-serif); margin-top: 30px;">All Readers</h3>
-    <div style="background: var(--card-bg); padding: 20px; border: 1px solid var(--border-color); font-family: var(--font-sans); font-size: 0.9rem;">
-        <ul style="list-style: none; padding: 0;">
-        @foreach($readers as $reader)
-            <li style="padding: 5px 0; border-bottom: 1px solid #eee;"><strong>{{ $reader->name ?? $reader->NAME }}</strong> - {{ $reader->email ?? $reader->EMAIL }}</li>
-        @endforeach
-        </ul>
+    <!-- Readers Tab -->
+    <div id="tab-readers" class="directory-tab" style="display: none;">
+        <h3 style="font-family: var(--font-serif);">All Readers ({{ count($readers) }})</h3>
+        <div style="background: var(--card-bg); padding: 20px; border: 1px solid var(--border-color); font-family: var(--font-sans); font-size: 0.9rem;">
+            <ul style="list-style: none; padding: 0;">
+            @foreach($readers as $reader)
+                <li style="padding: 10px 0; border-bottom: 1px solid #eee;">
+                    <strong>{{ $reader->name ?? $reader->NAME }}</strong> ({{ $reader->email ?? $reader->EMAIL }})<br>
+                    @php $rPwd = isset($reader->PASSWORD) ? $reader->PASSWORD : (isset($reader->password) ? $reader->password : 'N/A'); @endphp
+                    <span style="font-family: monospace; font-size: 0.8rem; color: #666; background: #eee; padding: 2px 5px; border-radius: 3px;">Password Hash: {{ Str::limit((string)$rPwd, 40) }}</span>
+                </li>
+            @endforeach
+            </ul>
+        </div>
     </div>
 
 </div>
+
+<script>
+function showTab(tabId) {
+    document.querySelectorAll('.directory-tab').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.btn').forEach(el => {
+        el.classList.remove('btn-primary');
+        el.classList.add('btn-secondary');
+    });
+    
+    document.getElementById(tabId).style.display = 'block';
+    
+    if(tabId === 'tab-channels') {
+        document.getElementById('btn-channels').classList.replace('btn-secondary', 'btn-primary');
+    } else if(tabId === 'tab-authors') {
+        document.getElementById('btn-authors').classList.replace('btn-secondary', 'btn-primary');
+    } else if(tabId === 'tab-readers') {
+        document.getElementById('btn-readers').classList.replace('btn-secondary', 'btn-primary');
+    }
+}
+</script>
 @endsection

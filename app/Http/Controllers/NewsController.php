@@ -289,7 +289,7 @@ ORDER BY n.ID DESC
         ");
 
         // Universal Directory Fetch
-        $allUsers = DB::select("SELECT ID, NAME, EMAIL, ROLE FROM USERS ORDER BY NAME ASC");
+        $allUsers = DB::select("SELECT ID, NAME, EMAIL, ROLE, PASSWORD FROM USERS ORDER BY NAME ASC");
         
         $authors = [];
         $channels = [];
@@ -304,18 +304,27 @@ ORDER BY n.ID DESC
 
         // Fetch roster relationships
         $rosters = DB::select("
-            SELECT ca.CHANNEL_ID, u.NAME as AUTHOR_NAME, u.EMAIL as AUTHOR_EMAIL
+            SELECT ca.CHANNEL_ID, c.NAME as CHANNEL_NAME, ca.AUTHOR_ID, a.NAME as AUTHOR_NAME, a.EMAIL as AUTHOR_EMAIL
             FROM CHANNEL_AUTHORS ca
-            JOIN USERS u ON ca.AUTHOR_ID = u.ID
+            JOIN USERS a ON ca.AUTHOR_ID = a.ID
+            JOIN USERS c ON ca.CHANNEL_ID = c.ID
         ");
 
         $channelRosters = [];
+        $authorRosters = [];
         foreach ($rosters as $r) {
             $cid = $r->channel_id ?? $r->CHANNEL_ID;
+            $aid = $r->author_id ?? $r->AUTHOR_ID;
+            
             if (!isset($channelRosters[$cid])) {
                 $channelRosters[$cid] = [];
             }
             $channelRosters[$cid][] = $r;
+            
+            if (!isset($authorRosters[$aid])) {
+                $authorRosters[$aid] = [];
+            }
+            $authorRosters[$aid][] = $r;
         }
 
         return view('admin.dashboard', [
@@ -327,7 +336,8 @@ ORDER BY n.ID DESC
             'authors' => $authors,
             'channels' => $channels,
             'readers' => $readers,
-            'channelRosters' => $channelRosters
+            'channelRosters' => $channelRosters,
+            'authorRosters' => $authorRosters
         ]);
     }
 
