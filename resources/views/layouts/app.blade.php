@@ -26,16 +26,35 @@
                 <a href="{{ url('/category/world') }}">World</a>
                 <a href="{{ url('/category/opinion') }}">Opinion</a>
                 <a href="{{ url('/category/culture') }}">Culture</a>
-                @if(session('user_logged_in'))
-                    @if(strtolower(session('user_role')) === 'author' || strtolower(session('user_role')) === 'both')
-                        <a href="{{ url('/author/dashboard') }}">Inbox</a>
-                    @elseif(strtolower(session('user_role')) === 'channel')
+                
+                <form id="categorySearchForm" class="flashy-search-form" onsubmit="event.preventDefault(); const cat = document.getElementById('catSearch').value.trim(); if(cat) window.location.href='{{ url('/category') }}/'+encodeURIComponent(cat.toLowerCase());">
+                    <input type="text" id="catSearch" class="flashy-search-input" placeholder="Search category...">
+                    <button type="submit" class="flashy-search-btn"><i class="fa-solid fa-magnifying-glass"></i></button>
+                </form>
+                @if(Auth::check())
+                    @if(strtolower(Auth::user()->role) === 'author' || strtolower(Auth::user()->role) === 'both')
+                        @php
+                            $unreadMsgCount = \Illuminate\Support\Facades\DB::table('inbox_messages')
+                                ->where('user_id', Auth::id())
+                                ->where('is_read', 0)
+                                ->count();
+                        @endphp
+                        <a href="{{ url('/author/dashboard') }}">
+                            Inbox
+                            @if($unreadMsgCount > 0)
+                                <span style="background: red; color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.7rem; vertical-align: super; font-family: sans-serif; font-weight: bold; margin-left: 2px;">{{ $unreadMsgCount }}</span>
+                            @endif
+                        </a>
+                    @elseif(strtolower(Auth::user()->role) === 'channel')
                         <a href="{{ url('/channel/dashboard') }}">Dashboard</a>
-                    @elseif(strtolower(session('user_role')) === 'admin')
+                    @elseif(strtolower(Auth::user()->role) === 'admin')
                         <a href="{{ url('/admin/dashboard') }}">Dashboard</a>
                     @endif
                     <a href="{{ url('/profile') }}">Account</a>
-                    <a href="{{ url('/logout') }}">Logout</a>
+                    <form method="POST" action="{{ route('logout') }}" style="display: inline;">
+                        @csrf
+                        <a href="{{ route('logout') }}" onclick="event.preventDefault(); this.closest('form').submit();">Logout</a>
+                    </form>
                 @else
                     <a href="{{ url('/login') }}">Login</a>
                     <a href="{{ url('/register') }}">Subscribe</a>

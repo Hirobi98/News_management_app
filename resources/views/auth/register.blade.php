@@ -6,14 +6,11 @@
     <p>Join the community as a reader or author.</p>
 
     <!-- Social Logins -->
-    <button class="btn btn-social">
+    <a href="{{ route('social.redirect', 'google') }}" class="btn btn-social" style="text-decoration: none; display: block; text-align: center; margin-bottom: 10px;">
         <i class="fa-brands fa-google" style="color: #DB4437;"></i>
         Sign up with Google
-    </button>
-    <button class="btn btn-social">
-        <i class="fa-brands fa-facebook" style="color: #4267B2;"></i>
-        Sign up with Facebook
-    </button>
+    </a>
+
 
     <div class="divider">OR</div>
 
@@ -52,6 +49,12 @@
         <div class="form-group" style="text-align: left;">
             <label for="password">Password</label>
             <input type="password" id="password" name="password" class="form-control" required placeholder="••••••••">
+            <small style="color: var(--text-secondary); font-size: 0.8rem; display: block; margin-top: 5px;">Must be at least 8 chars, 1 uppercase, 1 lowercase, 1 number, and 1 symbol.</small>
+        </div>
+        
+        <div class="form-group" style="text-align: left;">
+            <label for="password_confirmation">Confirm Password</label>
+            <input type="password" id="password_confirmation" name="password_confirmation" class="form-control" required placeholder="••••••••">
         </div>
         
         <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">Sign Up</button>

@@ -5,8 +5,39 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use App\Models\User;
+use Illuminate\Support\Facades\Auth;
+use Laravel\Socialite\Facades\Socialite;
+use Illuminate\Support\Str;
+
 class AuthController extends Controller
 {
+    public function socialRedirect($provider)
+    {
+        return Socialite::driver($provider)->redirect();
+    }
+
+    public function socialCallback($provider)
+    {
+        try {
+            $socialUser = Socialite::driver($provider)->user();
+            
+            $user = User::firstOrCreate(
+                ['email' => $socialUser->getEmail()],
+                [
+                    'name' => $socialUser->getName() ?? 'Social User',
+                    'password' => bcrypt(Str::random(16)),
+                    'role' => 'Reader'
+                ]
+            );
+
+            Auth::login($user);
+            return redirect('/home');
+        } catch (\Exception $e) {
+            return redirect('/login')->withErrors(['email' => 'Unable to login via ' . ucfirst($provider)]);
+        }
+    }
+
     public function showLogin()
     {
         // Admin auto-seed shoriyeneoa hoyeche jeno default login page-e crash na kore
@@ -22,7 +53,7 @@ class AuthController extends Controller
 
         // Oracle USERS table theke uppercase identity dhore user fetch kora hochhe
         $user = DB::table('USERS')
-            ->where(DB::raw('LOWER("EMAIL")'), strtolower($request->email))
+            ->where(DB::raw('LOWER(email)'), strtolower($request->email))
             ->get()
             ->first();
 
@@ -64,13 +95,21 @@ class AuthController extends Controller
         $request->validate([
             'name' => 'required|string|max:100',
             'email' => 'required|email|max:150',
-            'password' => 'required|string|min:6',
+            'password' => [
+                'required',
+                'string',
+                'min:8',             // must be at least 8 characters in length
+                'regex:/[a-z]/',      // must contain at least one lowercase letter
+                'regex:/[A-Z]/',      // must contain at least one uppercase letter
+                'regex:/[0-9]/',      // must contain at least one digit
+                'regex:/[@$!%*#?&]/', // must contain a special character
+            ],
             'role' => 'required|string'
         ]);
 
         // Email description check korar jonno query
         $existing = DB::table('USERS')
-            ->where(DB::raw('LOWER("EMAIL")'), strtolower($request->email))
+            ->where(DB::raw('LOWER(email)'), strtolower($request->email))
             ->get()
             ->first();
 
@@ -88,20 +127,17 @@ class AuthController extends Controller
         $role = $roleMap[$request->role] ?? 'Reader';
 
         // Oracle case-mismatch rodh korte UPPERCASE key-te input kora hochhe
-        DB::statement(
-            'INSERT INTO USERS
-    (NAME, EMAIL, PASSWORD, ROLE, BIO, INTEREST, PROFILE_PICTURE)
-    VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [
-                $request->name,
-                $request->email,
-                Hash::make($request->password),
-                $role,
-                null,
-                null,
-                null,
-            ]
-        );
+        $maxId = DB::table('users')->max('id') ?? 0;
+        DB::table('users')->insert([
+            'id' => $maxId + 1,
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'role' => $role,
+            'bio' => null,
+            'interest' => null,
+            'profile_picture' => null
+        ]);
 
         return redirect('/login')->with('success', 'Registration successful. Please login with your new account.');
     }
@@ -125,7 +161,7 @@ class AuthController extends Controller
         ]);
 
         $user = DB::table('USERS')
-            ->where(DB::raw('LOWER("EMAIL")'), strtolower($request->email))
+            ->where(DB::raw('LOWER(email)'), strtolower($request->email))
             ->get()
             ->first();
 

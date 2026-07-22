@@ -1,11 +1,3 @@
--- ==========================================================
--- ENTERPRISE NEWS MANAGEMENT SYSTEM (ORACLE 11g DBMS)
--- COMPLETE DATABASE SCHEMA AND PL/SQL ARCHITECTURE
--- ==========================================================
-
--- ----------------------------------------------------------
--- 1. TABLES
--- ----------------------------------------------------------
 
 CREATE TABLE USERS (
     ID NUMBER PRIMARY KEY,
@@ -70,72 +62,9 @@ CREATE TABLE CHANNEL_TASKS (
     CREATED_AT DATE DEFAULT SYSDATE
 );
 
--- ----------------------------------------------------------
--- 2. SEQUENCES
--- ----------------------------------------------------------
 
-CREATE SEQUENCE USERS_SEQ START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE NEWS_SEQ START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE COMMENTS_SEQ START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE AUDIT_LOGS_SEQ START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE INBOX_MESSAGES_SEQ START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE CHANNEL_TASKS_SEQ START WITH 1 INCREMENT BY 1;
-
--- ----------------------------------------------------------
--- 3. AUTO-INCREMENT TRIGGERS
--- ----------------------------------------------------------
-
-CREATE OR REPLACE TRIGGER USERS_BIR
-BEFORE INSERT ON USERS
-FOR EACH ROW
-BEGIN
-    :NEW.ID := USERS_SEQ.NEXTVAL;
-END;
-/
-
-CREATE OR REPLACE TRIGGER NEWS_ITEMS_BIR
-BEFORE INSERT ON NEWS_ITEMS
-FOR EACH ROW
-BEGIN
-    :NEW.ID := NEWS_SEQ.NEXTVAL;
-END;
-/
-
-CREATE OR REPLACE TRIGGER COMMENTS_BIR
-BEFORE INSERT ON COMMENTS
-FOR EACH ROW
-BEGIN
-    :NEW.ID := COMMENTS_SEQ.NEXTVAL;
-END;
-/
-
-CREATE OR REPLACE TRIGGER AUDIT_LOGS_BIR
-BEFORE INSERT ON AUDIT_LOGS
-FOR EACH ROW
-BEGIN
-    :NEW.ID := AUDIT_LOGS_SEQ.NEXTVAL;
-END;
-/
-
-CREATE OR REPLACE TRIGGER INBOX_MESSAGES_BIR
-BEFORE INSERT ON INBOX_MESSAGES
-FOR EACH ROW
-BEGIN
-    :NEW.ID := INBOX_MESSAGES_SEQ.NEXTVAL;
-END;
-/
-
-CREATE OR REPLACE TRIGGER CHANNEL_TASKS_BIR
-BEFORE INSERT ON CHANNEL_TASKS
-FOR EACH ROW
-BEGIN
-    :NEW.ID := CHANNEL_TASKS_SEQ.NEXTVAL;
-END;
-/
-
--- ----------------------------------------------------------
 -- 4. PL/SQL BUSINESS LOGIC (TRIGGERS)
--- ----------------------------------------------------------
+
 
 CREATE OR REPLACE TRIGGER NEWS_AUDIT_TRG
 AFTER INSERT OR UPDATE OR DELETE ON NEWS_ITEMS
@@ -172,14 +101,14 @@ BEGIN
         END IF;
     END IF;
 
-    INSERT INTO AUDIT_LOGS (ACTION, DETAILS) 
-    VALUES (v_action, v_details);
+    INSERT INTO AUDIT_LOGS (ID, ACTION, DETAILS) 
+    VALUES ((SELECT NVL(MAX(ID), 0) + 1 FROM AUDIT_LOGS), v_action, v_details);
 END;
 /
 
--- ----------------------------------------------------------
+
 -- 5. PL/SQL STORED PROCEDURES
--- ----------------------------------------------------------
+
 
 CREATE OR REPLACE PROCEDURE REJECT_NEWS_PROC (
     p_article_id IN NUMBER,
@@ -191,8 +120,8 @@ BEGIN
         ADMIN_FEEDBACK = p_feedback 
     WHERE ID = p_article_id;
     
-    INSERT INTO AUDIT_LOGS (ACTION, DETAILS) 
-    VALUES ('REJECT', 'Admin rejected article ID ' || p_article_id || ' with feedback.');
+    INSERT INTO AUDIT_LOGS (ID, ACTION, DETAILS) 
+    VALUES ((SELECT NVL(MAX(ID), 0) + 1 FROM AUDIT_LOGS), 'REJECT', 'Admin rejected article ID ' || p_article_id || ' with feedback.');
     
     COMMIT;
 END;
@@ -204,19 +133,20 @@ CREATE OR REPLACE PROCEDURE publish_news_proc (
 BEGIN
     UPDATE NEWS_ITEMS 
     SET STATUS = 'Published',
+        "date" = SYSDATE,
         ADMIN_FEEDBACK = NULL
     WHERE ID = p_article_id;
     
-    INSERT INTO AUDIT_LOGS (ACTION, DETAILS)
-    VALUES ('PUBLISH', 'Article ID ' || p_article_id || ' successfully published by Super Admin.');
+    INSERT INTO AUDIT_LOGS (ID, ACTION, DETAILS)
+    VALUES ((SELECT NVL(MAX(ID), 0) + 1 FROM AUDIT_LOGS), 'PUBLISH', 'Article ID ' || p_article_id || ' successfully published by Super Admin.');
     
     COMMIT;
 END;
 /
 
--- ----------------------------------------------------------
+
 -- 6. PL/SQL FUNCTIONS
--- ----------------------------------------------------------
+
 
 CREATE OR REPLACE FUNCTION GET_TOTAL_PUBLISHED_NEWS 
 RETURN NUMBER IS

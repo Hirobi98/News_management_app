@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -27,7 +29,14 @@ class NewsController extends Controller
         $date = $row->date ?? $row->DATE ?? null;
 
         if ($date) {
-            $dateStr = date('F j, Y', strtotime($date));
+            $cleanDate = preg_replace('/\.(\d{6})/', '', (string)$date);
+            $cleanDate = str_replace('.', ':', $cleanDate);
+            $timestamp = strtotime($cleanDate);
+            if ($timestamp !== false) {
+                $dateStr = date('F j, Y, g:i A', $timestamp);
+            } else {
+                $dateStr = (string)$date;
+            }
         }
 
         return [
@@ -37,6 +46,7 @@ class NewsController extends Controller
             'author' => $row->author_name ?? $row->AUTHOR_NAME,
             'channel' => $row->category ?? $row->CATEGORY,
             'target_channel_name' => $row->target_channel_name ?? $row->TARGET_CHANNEL_NAME ?? 'Unknown',
+            'target_channel_email' => $row->target_channel_email ?? $row->TARGET_CHANNEL_EMAIL ?? 'N/A',
             'date' => $dateStr,
             'image' => $row->image ?? $row->IMAGE ?? '',
             'status' => $row->status ?? $row->STATUS ?? 'Draft',
@@ -44,26 +54,75 @@ class NewsController extends Controller
         ];
     }
 
+    public function fetchLiveNews()
+    {
+        try {
+            $response = Http::get('https://newsapi.org/v2/top-headlines', [
+                'language' => 'en',
+                'pageSize' => 5,
+                'apiKey' => env('NEWS_API_KEY')
+            ]);
+
+            if ($response->successful()) {
+                $apiData = $response->json();
+                
+                $formattedArticles = [];
+                $articles = $apiData['articles'] ?? [];
+                
+                foreach ($articles as $article) {
+                    $formattedArticles[] = [
+                        'title' => $article['title'] ?? 'No Title',
+                        'source' => $article['source']['name'] ?? 'Unknown Source',
+                        'url' => $article['url'] ?? '#'
+                    ];
+                }
+
+                return response()->json([
+                    'status' => 'ok',
+                    'articles' => $formattedArticles
+                ], 200);
+            }
+        } catch (\Exception $e) {
+            // handle error below
+        }
+
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Unable to fetch international news at this time.'
+        ], 500);
+    }
+
+    private function logAudit($action, $details)
+    {
+        DB::table('audit_logs')->insert([
+            'action' => $action,
+            'details' => $details,
+            'created_at' => now(),
+            'updated_at' => now()
+        ]);
+    }
+
     public function index()
     {
-        if (!session('user_logged_in')) {
+        if (!Auth::check()) {
             return redirect('/login')->with('error', 'Please login to view news.');
         }
 
-        // Query published news from Oracle table using uppercase table name
-        $newsRows = DB::select("
-    SELECT *
-    FROM NEWS_ITEMS
-    WHERE LOWER(STATUS)='published'
-    ORDER BY ID DESC
-");
+        // Query published news using Query Builder
+        $newsRows = DB::table('news_items as n')
+            ->select('n.*', 'u.name as TARGET_CHANNEL_NAME', 'u.email as TARGET_CHANNEL_EMAIL')
+            ->leftJoin('users as u', 'n.target_channel', '=', 'u.id')
+            ->whereRaw('LOWER(n.status) = ?', ['published'])
+            ->orderByDesc('n.date')
+            ->orderByDesc('n.id')
+            ->get();
 
         $newsList = [];
         foreach ($newsRows as $row) {
             $newsList[] = $this->mapNewsItem($row);
         }
 
-        $userId = session('user_id');
+        $userId = Auth::id();
         $channels = DB::select("
             SELECT u.ID, u.NAME, u.EMAIL
             FROM USERS u 
@@ -76,24 +135,25 @@ class NewsController extends Controller
 
     public function category($category)
     {
-        if (!session('user_logged_in')) {
+        if (!Auth::check()) {
             return redirect('/login')->with('error', 'Please login to view news.');
         }
 
-        $newsRows = DB::select("
-            SELECT n.*, u.NAME as TARGET_CHANNEL_NAME
-            FROM NEWS_ITEMS n
-            LEFT JOIN USERS u ON n.TARGET_CHANNEL = u.ID
-            WHERE LOWER(n.STATUS)='published' AND LOWER(n.CATEGORY)=?
-            ORDER BY n.ID DESC
-        ", [strtolower($category)]);
+        $newsRows = DB::table('news_items as n')
+            ->select('n.*', 'u.name as TARGET_CHANNEL_NAME', 'u.email as TARGET_CHANNEL_EMAIL')
+            ->leftJoin('users as u', 'n.target_channel', '=', 'u.id')
+            ->whereRaw('LOWER(n.status) = ?', ['published'])
+            ->whereRaw('LOWER(n.category) = ?', [strtolower($category)])
+            ->orderByDesc('n.date')
+            ->orderByDesc('n.id')
+            ->get();
 
         $newsList = [];
         foreach ($newsRows as $row) {
             $newsList[] = $this->mapNewsItem($row);
         }
 
-        $userId = session('user_id');
+        $userId = Auth::id();
         $channels = DB::select("
             SELECT u.ID, u.NAME, u.EMAIL
             FROM USERS u 
@@ -106,13 +166,17 @@ class NewsController extends Controller
 
     public function show($id)
     {
-        if (!session('user_logged_in')) {
+        if (!Auth::check()) {
             return redirect('/login')->with('error', 'Please login to view news.');
         }
 
         // Fetch news article by ID
+        // Fetch news article by ID
         $newsRow = DB::select(
-            "SELECT * FROM NEWS_ITEMS WHERE ID = ?",
+            "SELECT n.*, u.NAME as TARGET_CHANNEL_NAME, u.EMAIL as TARGET_CHANNEL_EMAIL 
+             FROM NEWS_ITEMS n 
+             LEFT JOIN USERS u ON n.TARGET_CHANNEL = u.ID 
+             WHERE n.ID = ?",
             [$id]
         );
 
@@ -133,8 +197,13 @@ class NewsController extends Controller
         );
 
         foreach ($commentRows as $cRow) {
+            /*if($cRow->comment_text=="Shit"){
+                    return redirect('/home')->with('error', 'Inappropriate comment detected.');
+
+                }*/
             $news['comments'][] = [
                 'user' => $cRow->user_name ?? $cRow->USER_NAME,
+                
                 'text' => $cRow->comment_text ?? $cRow->COMMENT_TEXT,
                 'date' => $cRow->date ?? $cRow->DATE
             ];
@@ -145,8 +214,8 @@ class NewsController extends Controller
 
     public function create()
     {
-        $role = strtolower(session('user_role'));
-        if (!session('user_logged_in') || $role === 'reader') {
+        $role = strtolower(Auth::user()->role);
+        if (!Auth::check() || $role === 'reader') {
             return redirect('/home')->with('error', 'You do not have permission to write news.');
         }
 
@@ -155,8 +224,8 @@ class NewsController extends Controller
 
     public function store(Request $request)
     {
-        $role = strtolower(session('user_role'));
-        if (!session('user_logged_in') || $role === 'reader') {
+        $role = strtolower(Auth::user()->role);
+        if (!Auth::check() || $role === 'reader') {
             return redirect('/home')->with('error', 'You do not have permission to write news.');
         }
 
@@ -175,48 +244,32 @@ class NewsController extends Controller
             $imagePath = 'uploads/' . $imageName;
         }
 
-        DB::statement(
-            "
-INSERT INTO NEWS_ITEMS
-(
-NEWS_TITLE,
-AUTHOR_NAME,
-NEWS_DESCRIPTION,
-CATEGORY,
-STATUS,
-\"date\",
-IMAGE,
-TARGET_CHANNEL
-)
-VALUES
-(
-?,
-?,
-?,
-?,
-?,
-SYSDATE,
-?,
-?
-)
-",
-            [
-                $request->input('title'),
-                session('user_name', 'Anonymous Writer'),
-                $request->input('content'),
-                $request->input('category'),
-                'Pending_Channel',
-                $imagePath,
-                $request->input('target_channel')
-            ]
-        );
+        DB::table('news_items')->insert([
+            'news_title' => $request->input('title'),
+            'author_name' => Auth::user()->name,
+            'news_description' => $request->input('content'),
+            'category' => $request->input('category'),
+            'status' => 'Pending_Channel',
+            'date' => now(),
+            'image' => $imagePath,
+            'target_channel' => $request->input('target_channel')
+        ]);
+
+        // Auto-mark any pending tasks with this channel as submitted
+        DB::table('channel_tasks')
+            ->where('author_id', Auth::id())
+            ->where('channel_id', $request->input('target_channel'))
+            ->where('status', 'Pending')
+            ->update(['status' => 'Submitted']);
+
+        $this->logAudit('Author Draft', "Author " . Auth::user()->name . " drafted article '{$request->title}'.");
 
         return redirect('/home')->with('success', "Your dispatch '{$request->title}' was successfully sent to the news channel for review!");
     }
 
     public function storeComment(Request $request, $id)
     {
-        if (!session('user_logged_in')) {
+        if (!Auth::check()) {
             return redirect('/login');
         }
 
@@ -224,33 +277,14 @@ SYSDATE,
             'comment' => 'required|string|max:4000'
         ]);
 
-        // Insert comment. ID is generated by trigger COMMENTS_BIR.
-        DB::statement(
-            "
-INSERT INTO COMMENTS
-(
-ARTICLE_ID,
-USER_NAME,
-COMMENT_TEXT,
-STATUS,
-\"date\"
-)
-VALUES
-(
-?,
-?,
-?,
-?,
-SYSDATE
-)
-",
-            [
-                $id,
-                session('user_name', 'Anonymous Reader'),
-                $request->input('comment'),
-                'Approved'
-            ]
-        );
+        // Insert comment
+        DB::table('comments')->insert([
+            'article_id' => $id,
+            'user_name' => Auth::user()->name,
+            'comment_text' => $request->input('comment'),
+            'status' => 'Approved',
+            'date' => now()
+        ]);
 
         return redirect()->back()->with('success', 'Your letter was added successfully!');
     }
@@ -258,20 +292,16 @@ SYSDATE
     // Admin Dashboard Logic
     public function adminDashboard()
     {
-        $totalArticlesResult = DB::selectOne("SELECT GET_TOTAL_PUBLISHED_NEWS() TOTAL FROM DUAL");
-        $totalArticles = $totalArticlesResult->total ?? $totalArticlesResult->TOTAL ?? 0;
+        $totalArticles = DB::table('news_items')->where('status', 'Published')->count();
+        $totalUsers = DB::table('users')->count();
+        $totalComments = DB::table('comments')->count();
 
-        $totalUsers = DB::selectOne("SELECT COUNT(*) TOTAL FROM USERS")->total;
-
-        $totalComments = DB::selectOne("SELECT COUNT(*) TOTAL FROM COMMENTS")->total;
-
-        // Retrieve all articles for admin (especially Pending_Admin)
-        $allNewsRows = DB::select("
-SELECT n.*, u.NAME as TARGET_CHANNEL_NAME
-FROM NEWS_ITEMS n
-LEFT JOIN USERS u ON n.TARGET_CHANNEL = u.ID
-ORDER BY n.ID DESC
-");
+        // Retrieve all articles for admin
+        $allNewsRows = DB::table('news_items as n')
+            ->select('n.*', 'u.name as TARGET_CHANNEL_NAME')
+            ->leftJoin('users as u', 'n.target_channel', '=', 'u.id')
+            ->orderByDesc('n.id')
+            ->get();
 
         $newsList = [];
         foreach ($allNewsRows as $row) {
@@ -280,23 +310,19 @@ ORDER BY n.ID DESC
             $newsList[] = $item;
         }
 
-        // Retrieve audit logs populated by the NEWS_PUBLISH_TRG database trigger
-        $auditLogs = DB::select("
-        SELECT * FROM (
-            SELECT *
-            FROM AUDIT_LOGS
-            ORDER BY CREATED_AT DESC
-        ) WHERE ROWNUM <= 10
-        ");
+        // Retrieve audit logs populated by the database trigger
+        $auditLogs = DB::table('audit_logs')
+            ->orderByDesc('created_at')
+            ->limit(10)
+            ->get();
 
         // Fetch Global Tasks
-        $globalTasks = DB::select("
-            SELECT t.*, c.NAME as CHANNEL_NAME, a.NAME as AUTHOR_NAME
-            FROM CHANNEL_TASKS t
-            JOIN USERS c ON t.CHANNEL_ID = c.ID
-            JOIN USERS a ON t.AUTHOR_ID = a.ID
-            ORDER BY t.ID DESC
-        ");
+        $globalTasks = DB::table('channel_tasks as t')
+            ->select('t.*', 'c.name as CHANNEL_NAME', 'a.name as AUTHOR_NAME')
+            ->join('users as c', 't.channel_id', '=', 'c.id')
+            ->join('users as a', 't.author_id', '=', 'a.id')
+            ->orderByDesc('t.id')
+            ->get();
 
         // Universal Directory Fetch
         $allUsers = DB::select("SELECT ID, NAME, EMAIL, ROLE, PASSWORD FROM USERS ORDER BY NAME ASC");
@@ -352,21 +378,22 @@ ORDER BY n.ID DESC
         ]);
     }
 
-    // Stored Procedure and Transaction execution for publishing news
+    // PHP implementation for publishing news
     public function publishNews($id)
     {
         DB::transaction(function () use ($id) {
-            // Execute the Oracle stored procedure publish_news_proc
-            DB::statement("BEGIN publish_news_proc(?); END;", [$id]);
+            DB::table('news_items')
+                ->where('id', $id)
+                ->update(['status' => 'Published', 'date' => now(), 'admin_feedback' => null]);
         });
 
-        return redirect()->back()->with('success', 'Dispatch successfully published via Oracle Stored Procedure!');
+        return redirect()->back()->with('success', 'Dispatch successfully published!');
     }
 
     // Author Dashboard Logic
     public function authorDashboard()
     {
-        $authorName = session('user_name');
+        $authorName = Auth::user()->name;
 
         // Fetch news written by this author
         $authorNewsRows = DB::select(
@@ -389,11 +416,14 @@ ORDER BY ID DESC
         }
 
         // Fetch inbox messages
-        $inboxMessages = DB::select("SELECT * FROM INBOX_MESSAGES WHERE USER_ID = ? ORDER BY ID DESC", [session('user_id')]);
+        $inboxMessages = DB::select("SELECT * FROM INBOX_MESSAGES WHERE USER_ID = ? ORDER BY ID DESC", [Auth::id()]);
 
-        // Fetch unread count
-        $unreadCountResult = DB::selectOne("SELECT COUNT(*) AS UNREAD FROM INBOX_MESSAGES WHERE USER_ID = ? AND (IS_READ = 0 OR IS_READ IS NULL)", [session('user_id')]);
+        // Fetch unread count to show the highlights
+        $unreadCountResult = DB::selectOne("SELECT COUNT(*) AS UNREAD FROM INBOX_MESSAGES WHERE USER_ID = ? AND (IS_READ = 0 OR IS_READ IS NULL)", [Auth::id()]);
         $unreadCount = $unreadCountResult->unread ?? $unreadCountResult->UNREAD ?? 0;
+
+        // Auto-mark all messages as read (Instagram style)
+        DB::table('inbox_messages')->where('user_id', Auth::id())->update(['is_read' => 1]);
 
         // Fetch Tasks assigned to this author
         $myTasks = DB::select("
@@ -402,25 +432,34 @@ ORDER BY ID DESC
             JOIN USERS c ON t.CHANNEL_ID = c.ID
             WHERE t.AUTHOR_ID = ?
             ORDER BY t.ID DESC
-        ", [session('user_id')]);
+        ", [Auth::id()]);
+
+        // Fetch Channels for the author to select from when composing
+        $channels = DB::select("
+            SELECT u.ID, u.NAME, u.EMAIL
+            FROM USERS u 
+            JOIN CHANNEL_AUTHORS ca ON u.ID = ca.CHANNEL_ID 
+            WHERE ca.AUTHOR_ID = ?
+        ", [Auth::id()]);
 
         return view('author.dashboard', [
             'newsList' => $newsList,
             'inboxMessages' => $inboxMessages,
             'unreadCount' => $unreadCount,
-            'myTasks' => $myTasks
+            'myTasks' => $myTasks,
+            'channels' => $channels
         ]);
     }
 
     public function markInboxRead()
     {
-        DB::statement("UPDATE INBOX_MESSAGES SET IS_READ = 1 WHERE USER_ID = ?", [session('user_id')]);
+        DB::statement("UPDATE INBOX_MESSAGES SET IS_READ = 1 WHERE USER_ID = ?", [Auth::id()]);
         return redirect()->back();
     }
 
     public function markTaskCompleted($id)
     {
-        DB::statement("UPDATE CHANNEL_TASKS SET STATUS = 'Submitted' WHERE ID = ? AND AUTHOR_ID = ?", [$id, session('user_id')]);
+        DB::statement("UPDATE CHANNEL_TASKS SET STATUS = 'Submitted' WHERE ID = ? AND AUTHOR_ID = ?", [$id, Auth::id()]);
         return redirect()->back()->with('success', 'Task marked as Submitted!');
     }
 
@@ -428,7 +467,7 @@ ORDER BY ID DESC
     {
         $newsRow = DB::select("SELECT * FROM NEWS_ITEMS WHERE ID = ?", [$id]);
         $news = $newsRow[0] ?? null;
-        if (!$news || strtolower($news->author_name ?? $news->AUTHOR_NAME) !== strtolower(session('user_name'))) {
+        if (!$news || strtolower($news->author_name ?? $news->AUTHOR_NAME) !== strtolower(Auth::user()->name)) {
             return redirect('/home')->with('error', 'Unauthorized access.');
         }
 
@@ -437,7 +476,7 @@ ORDER BY ID DESC
             FROM USERS u 
             JOIN CHANNEL_AUTHORS ca ON u.ID = ca.CHANNEL_ID 
             WHERE ca.AUTHOR_ID = ?
-        ", [session('user_id')]);
+        ", [Auth::id()]);
         
         // Handle CLOB content securely
         $content = '';
@@ -481,13 +520,15 @@ ORDER BY ID DESC
             ]
         );
 
+        $this->logAudit('Author Update', "Author " . Auth::user()->name . " updated article '{$request->title}'.");
+
         return redirect('/author/dashboard')->with('success', 'Dispatch updated and resubmitted for channel review.');
     }
 
     // Channel Dashboard Logic
     public function channelDashboard()
     {
-        $channelId = session('user_id');
+        $channelId = Auth::id();
 
         $pendingNews = DB::select(
             "SELECT * FROM NEWS_ITEMS WHERE TARGET_CHANNEL = ? AND STATUS = 'Pending_Channel' ORDER BY ID DESC",
@@ -528,7 +569,7 @@ ORDER BY ID DESC
             'deadline' => 'required|date'
         ]);
 
-        $channelName = session('user_name');
+        $channelName = Auth::user()->name;
         
         $msg = "<strong>📢 TASK ASSIGNMENT from {$channelName}</strong><br>";
         $msg .= "<strong>Topic:</strong> " . htmlspecialchars($request->input('topic')) . "<br>";
@@ -537,21 +578,22 @@ ORDER BY ID DESC
             $msg .= "<strong>Resources:</strong> " . nl2br(htmlspecialchars($request->input('resources')));
         }
 
-        DB::statement("INSERT INTO INBOX_MESSAGES (USER_ID, MESSAGE, IS_READ) VALUES (?, ?, 0)", [
-            $request->input('author_id'),
-            $msg
+        DB::table('inbox_messages')->insert([
+            'user_id' => $request->input('author_id'),
+            'message' => $msg,
+            'is_read' => 0
         ]);
 
-        DB::statement("
-            INSERT INTO CHANNEL_TASKS (CHANNEL_ID, AUTHOR_ID, TOPIC, RESOURCES, DEADLINE) 
-            VALUES (?, ?, ?, ?, ?)
-        ", [
-            session('user_id'),
-            $request->input('author_id'),
-            $request->input('topic'),
-            $request->input('resources'),
-            $request->input('deadline')
+        DB::table('channel_tasks')->insert([
+            'channel_id' => Auth::id(),
+            'author_id' => $request->input('author_id'),
+            'topic' => $request->input('topic'),
+            'resources' => $request->input('resources'),
+            'deadline' => $request->input('deadline'),
+            'status' => 'Pending'
         ]);
+
+        $this->logAudit('Task Assigned', "Channel " . Auth::user()->name . " assigned a task to Author ID " . $request->input('author_id'));
 
         return redirect()->back()->with('success', 'Task successfully assigned to the author!');
     }
@@ -559,7 +601,7 @@ ORDER BY ID DESC
     public function addAuthorToChannel(Request $request)
     {
         $request->validate(['author_email' => 'required|email']);
-        $channelId = session('user_id');
+        $channelId = Auth::id();
 
         // Check if author exists
         $authorRow = DB::select("SELECT ID, ROLE FROM USERS WHERE LOWER(EMAIL) = ?", [strtolower($request->author_email)]);
@@ -603,23 +645,26 @@ ORDER BY ID DESC
             DB::statement("UPDATE NEWS_ITEMS SET STATUS = 'Pending_Admin', ADMIN_FEEDBACK = NULL WHERE ID = ?", [$id]);
             if ($userId) {
                 $msg = "Your dispatch '{$title}' was approved by the channel and forwarded to the Super Admin.";
-                DB::statement("INSERT INTO INBOX_MESSAGES (USER_ID, MESSAGE) VALUES (?, ?)", [$userId, $msg]);
+                DB::table('inbox_messages')->insert(['user_id' => $userId, 'message' => $msg]);
             }
+            $this->logAudit('Channel Approval', "Channel approved article ID {$id}");
             return redirect()->back()->with('success', 'Article forwarded to Super Admin for final review.');
         } elseif ($action === 'modify') {
             DB::statement("UPDATE NEWS_ITEMS SET STATUS = 'Modification_Required', ADMIN_FEEDBACK = ? WHERE ID = ?", [$feedback, $id]);
             if ($userId) {
                 $msg = "Modification Request for '{$title}': {$feedback}";
-                DB::statement("INSERT INTO INBOX_MESSAGES (USER_ID, MESSAGE) VALUES (?, ?)", [$userId, $msg]);
+                DB::table('inbox_messages')->insert(['user_id' => $userId, 'message' => $msg]);
             }
+            $this->logAudit('Channel Modify Request', "Channel requested modification for article ID {$id}");
             return redirect()->back()->with('success', 'Modification request sent to the author.');
         } else {
             // Permanent Reject
             DB::statement("UPDATE NEWS_ITEMS SET STATUS = 'Rejected_Permanent', ADMIN_FEEDBACK = 'Permanently Rejected' WHERE ID = ?", [$id]);
             if ($userId) {
                 $msg = "Your dispatch '{$title}' was permanently rejected by the channel.";
-                DB::statement("INSERT INTO INBOX_MESSAGES (USER_ID, MESSAGE) VALUES (?, ?)", [$userId, $msg]);
+                DB::table('inbox_messages')->insert(['user_id' => $userId, 'message' => $msg]);
             }
+            $this->logAudit('Channel Rejection', "Channel rejected article ID {$id}");
             return redirect()->back()->with('error', 'Article permanently rejected.');
         }
     }
@@ -630,15 +675,21 @@ ORDER BY ID DESC
         $feedback = $request->input('feedback');
         
         if ($action === 'approve') {
-            DB::statement("UPDATE NEWS_ITEMS SET STATUS = 'Published', ADMIN_FEEDBACK = NULL WHERE ID = ?", [$id]);
+            DB::table('news_items')->where('id', $id)->update([
+                'status' => 'Published',
+                'date' => now(),
+                'admin_feedback' => null
+            ]);
+            $this->logAudit('Admin Publish', "Super Admin published article ID {$id}");
             return redirect()->back()->with('success', 'Article published successfully to the news feed.');
         } else {
-            // Use the PL/SQL Stored Procedure to reject the news
-            DB::statement("BEGIN REJECT_NEWS_PROC(:id, :feedback); END;", [
-                'id' => $id,
-                'feedback' => $feedback
+            // Use the PHP logic to reject the news instead of PL/SQL Stored Procedure
+            DB::table('news_items')->where('id', $id)->update([
+                'status' => 'Rejected_Permanent',
+                'admin_feedback' => $feedback
             ]);
-            return redirect()->back()->with('error', 'Article rejected via PL/SQL Stored Procedure.');
+            $this->logAudit('Admin Reject', "Super Admin rejected article ID {$id}");
+            return redirect()->back()->with('error', 'Article rejected.');
         }
     }
 
@@ -652,3 +703,4 @@ ORDER BY ID DESC
         return redirect()->back()->with('success', 'Article deleted from archives.');
     }
 }
+

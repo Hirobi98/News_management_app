@@ -9,16 +9,7 @@
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
         <h2 style="font-family: var(--font-serif); font-size: 1.5rem; text-transform: uppercase; margin: 0;">
             Inbox Notifications 
-            @if(isset($unreadCount) && $unreadCount > 0)
-                <span style="background: red; color: white; border-radius: 50%; padding: 2px 8px; font-size: 0.8rem; vertical-align: super; font-family: sans-serif; font-weight: bold;">{{ $unreadCount }}</span>
-            @endif
         </h2>
-        @if(isset($unreadCount) && $unreadCount > 0)
-        <form action="{{ url('/author/inbox/read') }}" method="POST" style="margin: 0;">
-            @csrf
-            <button type="submit" class="btn btn-secondary" style="padding: 5px 15px; font-size: 0.8rem;">Mark all as read</button>
-        </form>
-        @endif
     </div>
 
     <div style="background: var(--card-bg); padding: 20px; border: 1px solid var(--border-color); margin-bottom: 40px; max-height: 400px; overflow-y: auto;">
@@ -49,7 +40,7 @@
             @endphp
             <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 10px; {{ $isUnread ? 'background: rgba(46, 125, 50, 0.05); border-left: 4px solid var(--primary-color); padding-left: 10px;' : '' }}">
                 <p style="margin: 0; font-family: var(--font-sans);"><i class="fa-solid fa-envelope" style="color: var(--secondary-color); margin-right: 10px;"></i> {!! $msg->message ?? $msg->MESSAGE !!}</p>
-                <span style="font-size: 0.8rem; color: var(--text-secondary); font-style: italic;">{{ date('F j, Y, g:i a', strtotime($msg->created_at ?? $msg->CREATED_AT)) }}</span>
+                <span style="font-size: 0.8rem; color: var(--text-secondary); font-style: italic;">{{ date('F j, Y, g:i a', strtotime($msg->created_at ?? $msg->CREATED_AT ?? now())) }}</span>
             </div>
         @endforeach
 
@@ -86,6 +77,37 @@
             <li style="color: #888; font-style: italic;">You have no assigned tasks.</li>
         @endforelse
         </ul>
+    </div>
+
+    <h2 style="font-family: var(--font-serif); font-size: 1.5rem; text-transform: uppercase; margin-bottom: 20px;">Draft a New Dispatch</h2>
+    <div style="background: var(--card-bg); padding: 20px; border: 1px solid var(--border-color); margin-bottom: 40px; border-top: 4px solid var(--primary-color);">
+        <form action="{{ url('/news') }}" method="POST" enctype="multipart/form-data">
+            @csrf
+            <div class="form-group" style="margin-bottom: 15px;">
+                <input type="text" name="title" class="form-control" placeholder="Headline..." required style="font-family: var(--font-serif); font-size: 1.5rem; font-weight: 700; border: none; border-bottom: 2px solid var(--primary-color); border-radius: 0; padding-left: 0; background: transparent; width: 100%;">
+            </div>
+            
+            <div class="form-group" style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                <select name="category" class="form-control" required style="width: auto; font-family: var(--font-sans); text-transform: uppercase;">
+                    <option value="">Select Category</option>
+                    <option value="World">World</option>
+                    <option value="Opinion">Opinion</option>
+                    <option value="Culture">Culture</option>
+                    <option value="Sports">Sports</option>
+                </select>
+                <select name="target_channel" class="form-control" required style="width: auto; font-family: var(--font-sans); text-transform: uppercase;">
+                    <option value="">Select News Channel</option>
+                    @foreach($channels ?? [] as $channel)
+                        <option value="{{ $channel->id ?? $channel->ID }}">{{ $channel->name ?? $channel->NAME }} ({{ $channel->email ?? $channel->EMAIL }})</option>
+                    @endforeach
+                </select>
+                <input type="file" name="image" class="form-control" accept="image/*" style="width: auto; font-family: var(--font-sans);">
+            </div>
+            <div class="form-group" style="margin-bottom: 15px;">
+                <textarea name="content" class="form-control" rows="5" placeholder="What is the story?" required style="font-style: italic; width: 100%; border: 1px solid var(--border-color); padding: 10px;"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary" style="padding: 10px 20px; font-size: 1rem;">Publish Dispatch</button>
+        </form>
     </div>
 
     <h2 style="font-family: var(--font-serif); font-size: 1.5rem; text-transform: uppercase; margin-bottom: 20px;">Your Dispatches</h2>

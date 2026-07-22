@@ -6,14 +6,11 @@
     <p>Login to read and write news.</p>
 
     <!-- Social Logins -->
-    <button class="btn btn-social">
+    <a href="{{ route('social.redirect', 'google') }}" class="btn btn-social" style="text-decoration: none; display: block; text-align: center; margin-bottom: 10px;">
         <i class="fa-brands fa-google" style="color: #DB4437;"></i>
         Sign in with Google
-    </button>
-    <button class="btn btn-social">
-        <i class="fa-brands fa-facebook" style="color: #4267B2;"></i>
-        Sign in with Facebook
-    </button>
+    </a>
+
 
     <div class="divider">OR</div>
 
@@ -21,7 +18,7 @@
         @csrf
         <div class="form-group" style="text-align: left;">
             <label for="email">Email Address</label>
-            <input type="email" id="email" name="email" class="form-control" required placeholder="you@example.com">
+            <input type="email" id="email" name="email" class="form-control" required placeholder="you@example.com" value="{{ request()->cookie('last_email') }}">
         </div>
         <div class="form-group" style="text-align: left;">
             <label for="password">Password</label>

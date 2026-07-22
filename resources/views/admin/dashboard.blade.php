@@ -95,7 +95,7 @@
         @forelse($auditLogs as $log)
             <li style="padding: 10px 0; border-bottom: 1px solid #eee;">
                 <strong style="color: var(--primary-color);">[{{ $log->action ?? $log->ACTION }}]</strong> 
-                <span style="color: #555; font-size: 0.8rem; margin-left: 10px;">{{ $log->created_at ?? $log->CREATED_AT }}</span><br>
+                <span style="color: #555; font-size: 0.8rem; margin-left: 10px;">{{ $log->created_at ?? $log->CREATED_AT ?? 'Unknown Date' }}</span><br>
                 {{ $log->details ?? $log->DETAILS }}
             </li>
         @empty
